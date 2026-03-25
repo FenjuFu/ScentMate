@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>气味相投 - ScentMate</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        :root {
+            --brand-orange: #fc4c02;
+            --brand-dark: #333;
+            --brand-bg: #fbfaf5;
+            --brand-light-grey: #e0e0e0;
+            --brand-font-serif: "Georgia", "Times New Roman", serif;
+            --brand-font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            --nav-height: 60px;
+        }
+        
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: var(--brand-font-sans);
+            background-color: var(--brand-bg);
+            color: var(--brand-dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navigation */
+        nav {
+            height: var(--nav-height);
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-family: var(--brand-font-serif);
+            font-size: 20px;
+            color: var(--brand-orange);
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-item {
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            transition: all 0.3s;
+            color: #666;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: var(--brand-orange);
+            color: #fff;
+        }
+
+        /* Main Container */
+        main {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .view-section {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            background: var(--brand-bg);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .view-section.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateY(0);
+            z-index: 10;
+        }
+
+        /* Home View */
+        #view-home {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-family: var(--brand-font-serif);
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: var(--brand-dark);
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 40px;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .btn-primary {
+            background: var(--brand-orange);
+            color: #fff;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: var(--brand-font-serif);
+            letter-spacing: 1px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(252, 76, 2, 0.3);
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: var(--brand-dark);
+            border: 1px solid #ccc;
+            padding: 8px 20px;
+            font-size: 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--brand-orange);
+            color: var(--brand-orange);
+        }
+
+        /* Collection View - Perfume Management */
+        #view-collection {
+            padding: 20px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .collection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+        }
+
+        .perfume-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .perfume-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .perfume-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border-color: #ddd;
+        }
+
+        .perfume-name {
+            font-family: var(--brand-font-serif);
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--brand-dark);
+        }
+
+        .perfume-notes {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .note-line {
+            display: flex;
+            margin-bottom: 4px;
+        }
+        
+        .note-label {
+            font-weight: bold;
+            width: 40px;
+            color: #999;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            color: #999;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .delete-btn:hover { color: #f00; }
+
+        .add-perfume-card {
+            border: 2px dashed #ddd;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 150px;
+            cursor: pointer;
+            color: #999;
+            background: #fafafa;
+        }
+
+        .add-perfume-card:hover {
+            border-color: var(--brand-orange);
+            color: var(--brand-orange);
+            background: #fff5f0;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-content {
+            background: #fff;
+            width: 600px;
+            max-width: 90%;
+            max-height: 90vh;
+            border-radius: 12px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            font-family: var(--brand-font-serif);
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--brand-orange);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .note-selector-area {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 50px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: #fafafa;
+            cursor: pointer;
+        }
+        
+        .note-selector-area:hover { border-color: #ccc; }
+
+        .selected-note-tag {
+            background: #fff;
+            border: 1px solid var(--brand-orange);
+            color: var(--brand-orange);
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .modal-footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        /* Ingredient Picker Modal (Nested or separate) */
+        #picker-modal .modal-content {
+            width: 800px;
+            height: 80vh;
+        }
+        
+        .picker-body {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .filter-bar {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tag {
+            padding: 6px 14px;
+            border: 1px solid #ccc;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 13px;
+            background: #fff;
+        }
+
+        .filter-tag.active {
+            border-color: var(--brand-orange);
+            color: var(--brand-orange);
+            background: #fff5f0;
+        }
+
+        .picker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+
+        .picker-item {
+            border: 1px solid #eee;
+            padding: 8px;
+            text-align: center;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .picker-item:hover { background: #f9f9f9; }
+        .picker-item.selected { background: var(--brand-orange); color: #fff; border-color: var(--brand-orange); }
+
+        /* Card View (Visualization) */
+        #view-card {
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+        }
+
+        #viz-container {
+            flex: 1;
+            height: 100%;
+            background: var(--brand-bg);
+            position: relative;
+        }
+
+        .card-sidebar {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            border-right: 1px solid #eee;
+            padding: 30px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            z-index: 20;
+        }
+
+        .card-title {
+            font-family: var(--brand-font-serif);
+            font-size: 28px;
+            color: var(--brand-orange);
+            margin: 0 0 10px 0;
+            line-height: 1.2;
+        }
+
+        .poetic-quote {
+            font-family: "KaiTi", "楷体", var(--brand-font-serif);
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+            font-style: italic;
+            border-left: 3px solid #eee;
+            padding-left: 15px;
+        }
+
+        .analysis-section h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .stat-list li {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .stat-val { font-weight: bold; color: var(--brand-orange); }
+
+        /* Social View */
+        #view-social {
+            padding: 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .match-list { display: grid; gap: 20px; }
+        
+        .match-card {
+            background: #fff;
+            border: 1px solid #eee;
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: transform 0.2s;
+        }
+        .match-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .match-avatar {
+            width: 80px; height: 80px; background: #f0f0f0; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 32px; color: #999; flex-shrink: 0;
+        }
+        .match-info { flex: 1; }
+        .match-name { font-size: 18px; font-weight: bold; margin: 0 0 5px 0; }
+        .match-score { text-align: center; min-width: 80px; }
+        .score-val { font-size: 24px; font-weight: bold; color: var(--brand-orange); display: block; }
+        .score-label { font-size: 11px; color: #999; text-transform: uppercase; }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            text-align: left;
+            padding: 12px 16px;
+            font-family: var(--brand-font-serif);
+            font-size: 14px;
+            background: #fff;
+            color: #333;
+            border: 1px solid var(--brand-orange);
+            border-radius: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            min-width: 120px;
+            z-index: 1000;
+        }
+        
+        .tooltip strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 16px;
+            color: var(--brand-orange);
+            border-bottom: 1px solid #eee;
+            padding-bottom: 4px;
+        }
+
+        /* User & Login */
+        .user-nav {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: var(--brand-orange);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .login-btn {
+            color: var(--brand-orange);
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px 15px;
+            border: 1px solid var(--brand-orange);
+            border-radius: 20px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .login-btn:hover {
+            background: var(--brand-orange);
+            color: #fff;
+        }
+
+        .lang-btn {
+            color: #666;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .lang-btn:hover {
+            border-color: var(--brand-orange);
+            color: var(--brand-orange);
+        }
+
+        .login-intro {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-intro h2 {
+            font-family: var(--brand-font-serif);
+            color: var(--brand-orange);
+            margin-bottom: 10px;
+        }
+        
+        .login-intro p {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo" onclick="app.navigate('home')">ScentMate</div>
+    <div class="nav-links">
+        <div class="nav-item" onclick="app.navigate('home')" data-i18n="nav.home">首页</div>
+        <div class="nav-item" onclick="app.navigate('collection')" data-i18n="nav.collection">气味收藏夹</div>
+        <div class="nav-item" onclick="app.navigate('card')" data-i18n="nav.card">气味名片</div>
+        <div class="nav-item" onclick="app.navigate('social')" data-i18n="nav.social">气味相投</div>
+    </div>
+    <div class="user-nav" id="user-nav">
+        <div class="lang-btn" onclick="app.toggleLanguage()" id="lang-toggle">EN</div>
+        <div class="login-btn" onclick="app.openLoginModal()" data-i18n="nav.login">登录 / 注册</div>
+    </div>
+</nav>
+
+<main>
+    <!-- Home View -->
+    <section id="view-home" class="view-section active">
+        <h1 class="hero-title" data-i18n="home.title">记录你的嗅觉记忆</h1>
+        <div class="hero-subtitle" data-i18n="home.subtitle">
+            每一瓶香水都是一段故事。<br>
+            记录你收藏的香水前中后调，生成你的专属气味星云。
+        </div>
+        <button class="btn-primary" onclick="app.navigate('collection')" data-i18n="home.cta">管理我的收藏</button>
+    </section>
+
+    <!-- Collection View -->
+    <section id="view-collection" class="view-section">
+        <div class="collection-header">
+            <h2 style="font-family: var(--brand-font-serif); margin:0;" data-i18n="collection.title">我的香水橱</h2>
+            <button class="btn-primary" onclick="app.openAddModal()" style="font-size: 14px; padding: 10px 25px;" data-i18n="collection.add">+ 添加香水</button>
+        </div>
+        
+        <div class="perfume-list" id="perfume-list">
+            <div class="perfume-card add-perfume-card" onclick="app.openAddModal()">
+                <div style="font-size: 40px;">+</div>
+                <div data-i18n="collection.record_new">记录新香水</div>
+            </div>
+            <!-- Dynamic Perfume Cards Here -->
+        </div>
+    </section>
+
+    <!-- Card View -->
+    <section id="view-card" class="view-section">
+        <div class="card-sidebar">
+            <h2 class="card-title" id="card-user-title">未命名收藏夹</h2>
+            <div class="poetic-quote" id="card-poetic-quote">
+                “气味是无声的诗篇，在记忆的空气中低吟浅唱。”
+            </div>
+            
+            <div class="analysis-section">
+                <h3 data-i18n="card.overview">气味概览</h3>
+                <ul class="stat-list" id="stat-overview"></ul>
+                
+                <h3 data-i18n="card.top_scents">灵魂香调 (Top 3)</h3>
+                <ul class="stat-list" id="stat-top-scents"></ul>
+                
+                <h3 data-i18n="card.top_pairs">经典和弦 (Top Combinations)</h3>
+                <ul class="stat-list" id="stat-top-pairs"></ul>
+            </div>
+            
+            <div style="margin-top: 40px; text-align: center;">
+                 <p style="font-size: 12px; color:#999;" data-i18n="card.generated_by">基于你收藏的香水成分生成</p>
+                 <button class="btn-secondary" onclick="app.navigate('social')" data-i18n="card.find_match">寻找共鸣者</button>
+            </div>
+        </div>
+        <div id="viz-container"></div>
+        <div class="tooltip"></div>
+    </section>
+
+    <!-- Social View -->
+    <section id="view-social" class="view-section">
+        <h2 style="font-family: var(--brand-font-serif); margin-bottom: 30px; color: var(--brand-orange);" data-i18n="social.title">气味相投的伙伴</h2>
+        <div class="match-list" id="match-list"></div>
+    </section>
+</main>
+
+<!-- Add Perfume Modal -->
+<div class="modal-overlay" id="add-modal">
+    <div class="modal-content">
+        <div class="modal-header" data-i18n="modal.add_perfume">添加香水</div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="modal.perfume_name">香水名称</label>
+            <input type="text" class="form-input" id="input-perfume-name" placeholder="例如：大地, 蔚蓝, 5号...">
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="modal.top_notes">前调 (Top Notes)</label>
+            <div class="note-selector-area" onclick="app.openPicker('top')">
+                <span style="color:#ccc; font-size:13px;" id="placeholder-top" data-i18n="modal.select_placeholder">点击选择气味...</span>
+                <div id="selected-top" style="display:contents;"></div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="modal.middle_notes">中调 (Heart Notes)</label>
+            <div class="note-selector-area" onclick="app.openPicker('middle')">
+                <span style="color:#ccc; font-size:13px;" id="placeholder-middle" data-i18n="modal.select_placeholder">点击选择气味...</span>
+                <div id="selected-middle" style="display:contents;"></div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="modal.base_notes">后调 (Base Notes)</label>
+            <div class="note-selector-area" onclick="app.openPicker('base')">
+                <span style="color:#ccc; font-size:13px;" id="placeholder-base" data-i18n="modal.select_placeholder">点击选择气味...</span>
+                <div id="selected-base" style="display:contents;"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="app.closeAddModal()" data-i18n="common.cancel">取消</button>
+            <button class="btn-primary" onclick="app.savePerfume()" data-i18n="common.save">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- Login Modal -->
+<div class="modal-overlay" id="login-modal" style="z-index: 2000;">
+    <div class="modal-content" style="width: 400px; padding: 40px;">
+        <div class="login-intro">
+            <h2 data-i18n="login.welcome">欢迎回到气味世界</h2>
+            <p data-i18n="login.subtitle">登录以管理您的专属气味档案</p>
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="login.email">电子邮箱</label>
+            <input type="email" class="form-input" id="login-email" placeholder="name@example.com">
+        </div>
+        <div class="form-group">
+            <label class="form-label" data-i18n="login.password">密码</label>
+            <input type="password" class="form-input" id="login-password" placeholder="••••••••">
+        </div>
+        <button class="btn-primary" style="width: 100%; margin-top: 10px;" onclick="app.login()" data-i18n="login.login_btn">登录</button>
+        <p style="text-align: center; font-size: 12px; color: #999; margin-top: 20px;">
+            <span data-i18n="login.no_account">还没有账号？</span> <a href="#" style="color: var(--brand-orange); text-decoration: none;" onclick="alert('注册功能暂未开放，请直接登录试用。')" data-i18n="login.register">立即注册</a>
+        </p>
+    </div>
+</div>
+
+<!-- Ingredient Picker Modal -->
+<div class="modal-overlay" id="picker-modal" style="z-index: 1100;">
+    <div class="modal-content">
+        <div class="modal-header" style="font-size: 20px;" data-i18n="modal.select_ingredient">选择气味成分</div>
+        <div class="filter-bar" id="picker-filters"></div>
+        <div class="picker-body">
+            <div class="picker-grid" id="picker-grid"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" onclick="app.closePicker()" data-i18n="common.done">完成选择</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onerror = function(msg, url, line, col, error) {
+        // Prevent alerting for minor warnings, but show critical errors
+        if (msg.toLowerCase().includes('script error')) {
+            alert('Script Error: See console for details.');
+        } else {
+            alert('System Error: ' + msg); // Uncommented for debugging
+        }
+        console.error("Global Error:", msg, line, error);
+    };
+
+    // --- Data Source ---
+    const DB = {
+        scentProfiles: {
+            "柑橘": ["香柠檬", "柠檬", "苦橙", "葡萄柚", "橘子", "青柠", "橙花油", "柚子", "苦橙叶", "佛手柑", "马鞭草", "醛"],
+            "花香": ["茉莉", "玫瑰", "依兰", "铃兰", "晚香玉", "鸢尾", "天竺葵", "薰衣草", "橙花", "紫罗兰", "牡丹", "木兰", "康乃馨", "黄葵", "菩提花", "椴树花", "洋槐", "老鹳草", "兰花", "天芥菜", "鸢尾草"],
+            "木质": ["檀香木", "雪松", "香根草", "广藿香", "沉香(乌木)", "柏树", "愈创木", "松树", "橡木", "杜松", "苔藓", "冷杉香脂", "桃花心木", "梧桐", "莎草", "胡萝卜籽", "不凋花", "喀什米尔木", "榛木"],
+            "辛辣": ["粉红胡椒", "黑胡椒", "小豆蔻", "肉桂", "丁香", "生姜", "肉豆蔻", "藏红花", "芫荽", "胡椒", "辛香料", "姜", "月桂叶"],
+            "美食": ["香草", "零陵香豆", "焦糖", "巧克力", "蜂蜜", "咖啡", "杏仁", "椰子", "朗姆酒", "威士忌", "麦芽", "干邑白兰地", "大米", "豆乳", "米香", "芋头"],
+            "草本": ["薄荷", "罗勒", "迷迭香", "鼠尾草", "百里香", "茶叶", "烟草", "尤加利", "常春藤", "橡木苔", "蓝色洋甘菊", "绿薄荷", "龙蒿", "干草", "青草", "乌龙茶"],
+            "果香": ["苹果", "桃子", "梨", "黑加仑", "无花果", "树莓", "菠萝", "西瓜", "橙子"],
+            "树脂": ["琥珀", "乳香", "没药", "安息香", "劳丹脂", "白松香"],
+            "动物": ["麝香", "龙涎香", "海狸香", "皮革", "海藻"],
+            "绿叶": ["紫罗兰叶"]
+        },
+        descriptions: {
+            // Basic mapping, can be extended
+            "香柠檬": "清新、爽口的柑橘香，带有复杂的花香边缘。",
+            "茉莉": "浓郁、华丽且甜美的花香。",
+            "檀香木": "奶油般顺滑、奶香和柔软的木质香气。",
+            "玫瑰": "经典、浪漫且清新的花香调。",
+            "香根草": "来自根部的泥土、木质和烟熏气息。",
+            "香草": "甜美、美食调和令人舒适的香气。",
+            "麝香": "柔软、粉感和类似肌肤的动物气息。",
+            "雪松": "干燥、木质，类似铅笔屑的香气。",
+            "广藿香": "泥土、木质，略带甜味或薄荷味。",
+            "粉红胡椒": "清新、辛辣，略带花香/玫瑰香。",
+            "小豆蔻": "辛辣、芳香且略带树脂味的香调。",
+            "琥珀": "温暖、甜美和树脂的调协。",
+            "皮革": "烟熏、焦油和皮肤的气息。",
+            "鸢尾": "粉感、花香和木质感。",
+            "橙花": "清新、花香和柑橘味的花朵。",
+            "薰衣草": "花香、草本和干净的芳香。",
+            "沉香(乌木)": "浓郁、霉味、木质和坚果味。",
+            "零陵香豆": "甜美、辛辣，带有杏仁和烟草的细微差别。",
+            "乳香": "树脂、香脂和略带辛辣的焚香调。",
+            "安息香": "甜美、香草味和树脂感。",
+            "烟草": "丰富、甜美、温暖和泥土气息。",
+            "黑加仑": "果香、酸甜且略带动物感。",
+            "无花果": "乳状、甜美、绿色和果香。",
+            "葡萄柚": "苦涩、清新且充满活力的柑橘调。"
+        }
+    };
+
+    // Helper: Flatten ingredients
+    const ALL_INGREDIENTS = [];
+    Object.entries(DB.scentProfiles).forEach(([profile, list]) => {
+        list.forEach(item => ALL_INGREDIENTS.push({ name: item, profile }));
+    });
+
+    const SCENT_TRANSLATIONS = {
+        // Citrus
+        "柑橘": "Citrus",
+        "香柠檬": "Bergamot", "柠檬": "Lemon", "苦橙": "Bitter Orange", "葡萄柚": "Grapefruit", 
+        "橘子": "Mandarin", "青柠": "Lime", "橙花油": "Neroli", "柚子": "Yuzu", 
+        "苦橙叶": "Petitgrain", "佛手柑": "Bergamot", "马鞭草": "Verbena", "醛": "Aldehydes", "橙子": "Orange",
+
+        // Floral
+        "花香": "Floral",
+        "茉莉": "Jasmine", "玫瑰": "Rose", "依兰": "Ylang-Ylang", "铃兰": "Lily of the Valley", 
+        "晚香玉": "Tuberose", "鸢尾": "Iris", "天竺葵": "Geranium", "薰衣草": "Lavender", 
+        "橙花": "Orange Blossom", "紫罗兰": "Violet", "牡丹": "Peony", "木兰": "Magnolia", 
+        "康乃馨": "Carnation", "黄葵": "Ambrette", "菩提花": "Linden Blossom", "椴树花": "Lime Blossom", 
+        "洋槐": "Acacia", "老鹳草": "Geranium", "兰花": "Orchid", "天芥菜": "Heliotrope", "鸢尾草": "Orris",
+
+        // Woody
+        "木质": "Woody",
+        "檀香木": "Sandalwood", "雪松": "Cedar", "香根草": "Vetiver", "广藿香": "Patchouli", 
+        "沉香(乌木)": "Oud", "柏树": "Cypress", "愈创木": "Guaiac Wood", "松树": "Pine", 
+        "橡木": "Oak", "杜松": "Juniper", "苔藓": "Moss", "冷杉香脂": "Fir Balsam", 
+        "桃花心木": "Mahogany", "梧桐": "Sycamore", "莎草": "Papyrus", "胡萝卜籽": "Carrot Seed", 
+        "不凋花": "Immortelle", "喀什米尔木": "Cashmere Wood", "榛木": "Hazelnut",
+
+        // Spicy
+        "辛辣": "Spicy",
+        "粉红胡椒": "Pink Pepper", "黑胡椒": "Black Pepper", "小豆蔻": "Cardamom", "肉桂": "Cinnamon", 
+        "丁香": "Clove", "生姜": "Ginger", "肉豆蔻": "Nutmeg", "藏红花": "Saffron", 
+        "芫荽": "Coriander", "胡椒": "Pepper", "辛香料": "Spices", "姜": "Ginger", "月桂叶": "Bay Leaf",
+
+        // Gourmand
+        "美食": "Gourmand",
+        "香草": "Vanilla", "零陵香豆": "Tonka Bean", "焦糖": "Caramel", "巧克力": "Chocolate", 
+        "蜂蜜": "Honey", "咖啡": "Coffee", "杏仁": "Almond", "椰子": "Coconut", 
+        "朗姆酒": "Rum", "威士忌": "Whiskey", "麦芽": "Malt", "干邑白兰地": "Cognac", 
+        "大米": "Rice", "豆乳": "Soy Milk", "米香": "Rice", "芋头": "Taro",
+
+        // Herbal
+        "草本": "Herbal",
+        "薄荷": "Mint", "罗勒": "Basil", "迷迭香": "Rosemary", "鼠尾草": "Sage", 
+        "百里香": "Thyme", "茶叶": "Tea", "烟草": "Tobacco", "尤加利": "Eucalyptus", 
+        "常春藤": "Ivy", "橡木苔": "Oakmoss", "蓝色洋甘菊": "Blue Chamomile", "绿薄荷": "Spearmint", 
+        "龙蒿": "Tarragon", "干草": "Hay", "青草": "Grass", "乌龙茶": "Oolong Tea",
+
+        // Fruity
+        "果香": "Fruity",
+        "苹果": "Apple", "桃子": "Peach", "梨": "Pear", "黑加仑": "Blackcurrant", 
+        "无花果": "Fig", "树莓": "Raspberry", "菠萝": "Pineapple", "西瓜": "Watermelon",
+
+        // Resinous
+        "树脂": "Resinous",
+        "琥珀": "Amber", "乳香": "Frankincense", "没药": "Myrrh", "安息香": "Benzoin", 
+        "劳丹脂": "Labdanum", "白松香": "Galbanum",
+
+        // Animalic
+        "动物": "Animalic",
+        "麝香": "Musk", "龙涎香": "Ambergris", "海狸香": "Castoreum", "皮革": "Leather", "海藻": "Seaweed",
+
+        // Green
+        "绿叶": "Green",
+        "紫罗兰叶": "Violet Leaf"
+    };
+
+    const TRANSLATIONS = {
+        zh: {
+            nav: {
+                home: "首页",
+                collection: "气味收藏夹",
+                card: "气味名片",
+                social: "气味相投",
+                login: "登录 / 注册"
+            },
+            home: {
+                title: "记录你的嗅觉记忆",
+                subtitle: "每一瓶香水都是一段故事。<br>记录你收藏的香水前中后调，生成你的专属气味星云。",
+                cta: "管理我的收藏"
+            },
+            collection: {
+                title: "我的香水橱",
+                add: "+ 添加香水",
+                record_new: "记录新香水",
+                top: "前调",
+                middle: "中调",
+                base: "后调",
+                delete_confirm: "确定删除这瓶香水吗？"
+            },
+            card: {
+                overview: "气味概览",
+                top_scents: "灵魂香调 (Top 3)",
+                top_pairs: "经典和弦 (Top Combinations)",
+                generated_by: "基于你收藏的香水成分生成",
+                find_match: "寻找共鸣者",
+                perfumes: "收藏香水",
+                scents: "独特气味",
+                bottles: "瓶",
+                types: "种",
+                explorer: "气味探索者",
+                default_quote: "在气味的迷宫中，你找到了属于自己的线索。",
+                pairing_same: "两种{0}调的深度共鸣，强化了该香调的核心特质。",
+                pairing_mix: "将{0}的特质与{1}的氛围融合，创造出层次丰富的嗅觉体验。"
+            },
+            social: {
+                title: "气味相投的伙伴",
+                match_score: "共鸣度",
+                common_likes: "共同喜好",
+                no_overlap: "暂无显著重叠",
+                no_perfume_tip: "请先添加香水以寻找伙伴"
+            },
+            modal: {
+                add_perfume: "添加香水",
+                perfume_name: "香水名称",
+                top_notes: "前调 (Top Notes)",
+                middle_notes: "中调 (Heart Notes)",
+                base_notes: "后调 (Base Notes)",
+                select_placeholder: "点击选择气味...",
+                select_ingredient: "选择气味成分"
+            },
+            login: {
+                welcome: "欢迎回到气味世界",
+                subtitle: "登录以管理您的专属气味档案",
+                email: "电子邮箱",
+                password: "密码",
+                login_btn: "登录",
+                no_account: "还没有账号？",
+                register: "立即注册",
+                alert_invalid_email: "请输入有效的电子邮箱地址",
+                logout_confirm: "确定要退出登录吗？"
+            },
+            common: {
+                cancel: "取消",
+                save: "保存",
+                done: "完成选择",
+                all: "全部"
+            }
+        },
+        en: {
+            nav: {
+                home: "Home",
+                collection: "Collection",
+                card: "Scent Card",
+                social: "ScentMate",
+                login: "Login / Sign Up"
+            },
+            home: {
+                title: "Capture Your Olfactory Memories",
+                subtitle: "Every perfume tells a story.<br>Record the notes of your collection and generate your unique scent nebula.",
+                cta: "Manage Collection"
+            },
+            collection: {
+                title: "My Perfume Cabinet",
+                add: "+ Add Perfume",
+                record_new: "Add New",
+                top: "Top",
+                middle: "Middle",
+                base: "Base",
+                delete_confirm: "Are you sure you want to delete this perfume?"
+            },
+            card: {
+                overview: "Overview",
+                top_scents: "Soul Notes (Top 3)",
+                top_pairs: "Signature Chords (Top Combinations)",
+                generated_by: "Generated based on your collection",
+                find_match: "Find Resonance",
+                perfumes: "Perfumes",
+                scents: "Unique Scents",
+                bottles: "bottles",
+                types: "types",
+                explorer: "Scent Explorer",
+                default_quote: "In the labyrinth of scents, you found your own thread.",
+                pairing_same: "Deep resonance of two {0} notes, reinforcing the core character.",
+                pairing_mix: "Fusing the character of {0} with the ambiance of {1}."
+            },
+            social: {
+                title: "Scent Soulmates",
+                match_score: "Resonance",
+                common_likes: "Common Likes",
+                no_overlap: "No significant overlap",
+                no_perfume_tip: "Please add perfumes to find partners"
+            },
+            modal: {
+                add_perfume: "Add Perfume",
+                perfume_name: "Perfume Name",
+                top_notes: "Top Notes",
+                middle_notes: "Heart Notes",
+                base_notes: "Base Notes",
+                select_placeholder: "Click to select...",
+                select_ingredient: "Select Ingredient"
+            },
+            login: {
+                welcome: "Welcome Back",
+                subtitle: "Login to manage your scent profile",
+                email: "Email",
+                password: "Password",
+                login_btn: "Login",
+                no_account: "No account?",
+                register: "Register Now",
+                alert_invalid_email: "Please enter a valid email address",
+                logout_confirm: "Are you sure you want to logout?"
+            },
+            common: {
+                cancel: "Cancel",
+                save: "Save",
+                done: "Done",
+                all: "All"
+            }
+        }
+    };
+
+    const MOCK_USERS = [
+        { name: "ForestWalker", bio: "迷恋雨后的森林", ingredients: ["香根草", "雪松", "广藿香", "柏树", "苔藓", "橡木"] },
+        { name: "CitrusSummer", bio: "永远的夏天", ingredients: ["香柠檬", "柠檬", "葡萄柚", "薄荷", "罗勒"] },
+        { name: "SpicySoul", bio: "温暖而热烈", ingredients: ["肉桂", "生姜", "黑胡椒", "小豆蔻", "丁香", "檀香木"] },
+        { name: "SweetDream", bio: "美食调爱好者", ingredients: ["香草", "焦糖", "巧克力", "杏仁", "零陵香豆"] }
+    ];
+
+    window.app = {
+        state: {
+            user: JSON.parse(localStorage.getItem('scent_user')) || null,
+            currentLang: localStorage.getItem('scent_lang') || 'zh',
+            currentView: 'home',
+            myPerfumes: [
+                {
+                    id: 1,
+                    name: "蓦岚 青藤",
+                    notes: { top: ["苦橙", "罗勒"], middle: ["常春藤"], base: ["小豆蔻", "橡木苔"] }
+                },
+                {
+                    id: 2,
+                    name: "银杉 泥煤",
+                    notes: { top: ["威士忌", "小豆蔻", "烟雾"], middle: ["麦芽", "康乃馨", "茉莉", "橡木"], base: ["檀香木", "广藿香", "黄葵", "香草", "零陵香豆"] }
+                },
+                {
+                    id: 3,
+                    name: "天乐 天乐",
+                    notes: { top: ["醛", "尤加利", "香柠檬", "薄荷", "杜松"], middle: ["迷迭香", "苦橙叶", "薰衣草", "劳丹脂", "乳香"], base: ["沉香(乌木)", "檀香木", "香根草", "广藿香", "琥珀", "麝香"] }
+                },
+                {
+                    id: 4,
+                    name: "天乐 不要惊动爱情",
+                    notes: { top: ["海藻", "干邑白兰地", "蓝色洋甘菊"], middle: ["橙花", "紫罗兰叶", "乳香"], base: ["白松香", "橡木", "龙涎香"] }
+                },
+                {
+                    id: 5,
+                    name: "梅森马吉拉 梧叶秋声",
+                    notes: { top: ["粉红胡椒", "小豆蔻"], middle: ["肉豆蔻", "胡萝卜籽", "乳香"], base: ["雪松", "苔藓", "冷杉香脂"] }
+                },
+                {
+                    id: 6,
+                    name: "Jébilly 娘惹黄姜",
+                    notes: { top: ["香柠檬", "茶叶", "薄荷"], middle: ["茉莉", "大米", "生姜"], base: ["香根草"] }
+                },
+                {
+                    id: 7,
+                    name: "FLORAMUSE 摩登薄荷",
+                    notes: { top: ["绿薄荷", "柠檬", "丁香", "粉红胡椒"], middle: ["茉莉", "生姜", "苹果"], base: ["香草", "桃花心木", "雪松"] }
+                },
+                {
+                    id: 8,
+                    name: "FLORAMUSE 晚风",
+                    notes: { top: ["菩提花", "香柠檬", "苦橙叶"], middle: ["龙蒿", "椴树花", "茉莉", "玫瑰", "铃兰", "月桂叶"], base: ["洋槐", "干草", "柠檬", "马鞭草"] }
+                },
+                {
+                    id: 9,
+                    name: "FLORAMUSE 雨后",
+                    notes: { top: ["芫荽", "青草", "树莓"], middle: ["梧桐", "胡椒", "小豆蔻", "老鹳草"], base: ["香根草", "柏树"] }
+                },
+                {
+                    id: 10,
+                    name: "One Day Taipei台北",
+                    notes: { top: ["豆乳", "米香", "芋头"], middle: ["愈创木", "鸢尾"], base: ["麝香", "香根草", "檀香木"] }
+                },
+                {
+                    id: 11,
+                    name: "五朵里 鸭屎香",
+                    notes: { top: ["香柠檬", "莎草", "辛香料"], middle: ["乌龙茶", "兰花"], base: ["香根草", "愈创木", "不凋花"] }
+                },
+                {
+                    id: 12,
+                    name: "花宫娜天芥菜生姜",
+                    notes: { top: ["佛手柑", "橙子"], middle: ["玫瑰", "肉桂", "姜", "苹果"], base: ["天芥菜", "零陵香豆", "焦糖"] }
+                },
+                {
+                    id: 13,
+                    name: "hellenist梦神之臂",
+                    notes: { top: ["紫罗兰叶", "桃子", "天芥菜"], middle: ["鸢尾草", "紫罗兰", "榛木"], base: ["香草", "零陵香豆", "喀什米尔木"] }
+                }
+            ],
+            tempNotes: { top: new Set(), middle: new Set(), base: new Set() }, // For modal
+            currentPickingSection: null
+        },
+
+        init() {
+            try {
+                this.updateTexts();
+                this.updateUserNav();
+                this.renderPerfumeList();
+                this.initPicker();
+            } catch (e) {
+                console.error("App Init Error:", e);
+                alert("Application Error: " + e.message);
+            }
+        },
+
+        toggleLanguage() {
+            this.state.currentLang = this.state.currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('scent_lang', this.state.currentLang);
+            this.updateTexts();
+            // Re-render dynamic content
+            this.renderPerfumeList();
+            if (this.state.currentView === 'card') this.renderCard();
+            if (this.state.currentView === 'social') this.renderSocial();
+            this.initPicker(); // Re-render picker filters
+        },
+
+        updateTexts() {
+            const lang = this.state.currentLang;
+            const t = TRANSLATIONS[lang];
+            
+            // Update Toggle Button
+            const langBtn = document.getElementById('lang-toggle');
+            if (langBtn) langBtn.textContent = lang === 'zh' ? 'EN' : '中文';
+
+            // Update Static Elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const keys = key.split('.');
+                let value = t;
+                keys.forEach(k => { value = value ? value[k] : null; });
+                
+                if (value) {
+                    if (el.tagName === 'INPUT' && el.getAttribute('placeholder')) {
+                        // For inputs, we might want to translate placeholder, but simpler to skip or handle specifically if needed
+                        // Here we assume placeholder is language neutral or handled differently
+                    } else {
+                        el.innerHTML = value;
+                    }
+                }
+            });
+        },
+
+        navigate(viewId) {
+            console.log("Navigating to:", viewId);
+            // Route Guard - Temporarily disabled for testing
+            /*
+            const protectedViews = ['collection', 'card', 'social'];
+            if (protectedViews.includes(viewId) && !this.state.user) {
+                console.log("User not logged in, showing login modal");
+                this.openLoginModal();
+                return;
+            }
+            */
+
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const navItems = document.querySelectorAll('.nav-item');
+            if (viewId === 'home') navItems[0].classList.add('active');
+            if (viewId === 'collection') navItems[1].classList.add('active');
+            if (viewId === 'card') navItems[2].classList.add('active');
+            if (viewId === 'social') navItems[3].classList.add('active');
+
+            if (viewId === 'card') this.renderCard();
+            if (viewId === 'social') this.renderSocial();
+        },
+
+        // --- Auth & User ---
+        openLoginModal() {
+            document.getElementById('login-modal').classList.add('active');
+        },
+
+        login() {
+            const email = document.getElementById('login-email').value.trim();
+            if (!email || !email.includes('@')) {
+                alert('请输入有效的电子邮箱地址');
+                return;
+            }
+            
+            // Simulate Login
+            this.state.user = { email: email, name: email.split('@')[0] };
+            localStorage.setItem('scent_user', JSON.stringify(this.state.user));
+            
+            document.getElementById('login-modal').classList.remove('active');
+            this.updateUserNav();
+            
+            // Redirect to collection if on home
+            if (this.state.currentView === 'home') {
+                this.navigate('collection');
+            }
+        },
+
+        logout() {
+            if(confirm('确定要退出登录吗？')) {
+                this.state.user = null;
+                localStorage.removeItem('scent_user');
+                this.updateUserNav();
+                this.navigate('home');
+            }
+        },
+
+        updateUserNav() {
+            const container = document.getElementById('user-nav');
+            const lang = this.state.currentLang;
+            const t = TRANSLATIONS[lang];
+            const langBtnText = lang === 'zh' ? 'EN' : '中文';
+            
+            // Keep the lang button
+            let html = `<div class="lang-btn" onclick="app.toggleLanguage()" id="lang-toggle">${langBtnText}</div>`;
+            
+            if (this.state.user) {
+                html += `
+                    <div class="user-avatar" onclick="app.logout()" title="${t.login.logout_confirm}: ${this.state.user.email}">
+                        ${this.state.user.name[0].toUpperCase()}
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="login-btn" onclick="app.openLoginModal()">${t.nav.login}</div>
+                `;
+            }
+            container.innerHTML = html;
+        },
+
+        // --- Perfume Management ---
+        renderPerfumeList() {
+            const container = document.getElementById('perfume-list');
+            const t = TRANSLATIONS[this.state.currentLang];
+            const isEn = this.state.currentLang === 'en';
+            
+            // Keep the add button (re-create it to update text)
+            container.innerHTML = `
+            <div class="perfume-card add-perfume-card" onclick="app.openAddModal()">
+                <div style="font-size: 40px;">+</div>
+                <div data-i18n="collection.record_new">${t.collection.record_new}</div>
+            </div>`;
+
+            this.state.myPerfumes.forEach(perfume => {
+                const card = document.createElement('div');
+                card.className = 'perfume-card';
+                
+                // Translate notes
+                const formatNotes = (notes) => {
+                    if (!notes || notes.length === 0) return "-";
+                    if (!isEn) return notes.join(", ");
+                    return notes.map(n => SCENT_TRANSLATIONS[n] || n).join(", ");
+                };
+
+                card.innerHTML = `
+                    <div class="delete-btn" onclick="event.stopPropagation(); app.deletePerfume(${perfume.id})">×</div>
+                    <div class="perfume-name">${perfume.name}</div>
+                    <div class="perfume-notes">
+                        <div class="note-line"><span class="note-label">${t.collection.top}</span> <span>${formatNotes(perfume.notes.top)}</span></div>
+                        <div class="note-line"><span class="note-label">${t.collection.middle}</span> <span>${formatNotes(perfume.notes.middle)}</span></div>
+                        <div class="note-line"><span class="note-label">${t.collection.base}</span> <span>${formatNotes(perfume.notes.base)}</span></div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        },
+
+        deletePerfume(id) {
+            const t = TRANSLATIONS[this.state.currentLang];
+            if(confirm(t.collection.delete_confirm)) {
+                this.state.myPerfumes = this.state.myPerfumes.filter(p => p.id !== id);
+                this.renderPerfumeList();
+            }
+        },
+
+        openAddModal() {
+            document.getElementById('add-modal').classList.add('active');
+            document.getElementById('input-perfume-name').value = '';
+            this.state.tempNotes = { top: new Set(), middle: new Set(), base: new Set() };
+            this.renderSelectedNotes();
+        },
+
+        closeAddModal() {
+            document.getElementById('add-modal').classList.remove('active');
+        },
+
+        savePerfume() {
+            const name = document.getElementById('input-perfume-name').value.trim();
+            if (!name) return alert("请输入香水名称");
+            
+            const newPerfume = {
+                id: Date.now(),
+                name: name,
+                notes: {
+                    top: Array.from(this.state.tempNotes.top),
+                    middle: Array.from(this.state.tempNotes.middle),
+                    base: Array.from(this.state.tempNotes.base)
+                }
+            };
+            
+            if (newPerfume.notes.top.length === 0 && newPerfume.notes.middle.length === 0 && newPerfume.notes.base.length === 0) {
+                return alert("请至少选择一种气味成分");
+            }
+
+            this.state.myPerfumes.push(newPerfume);
+            this.renderPerfumeList();
+            this.closeAddModal();
+        },
+
+        // --- Ingredient Picker ---
+        initPicker() {
+            const filters = document.getElementById('picker-filters');
+            const allTag = document.createElement('div');
+            allTag.className = 'filter-tag active';
+            allTag.textContent = '全部';
+            allTag.onclick = (e) => this.filterPicker('all', e.target);
+            filters.appendChild(allTag);
+
+            Object.keys(DB.scentProfiles).forEach(profile => {
+                const tag = document.createElement('div');
+                tag.className = 'filter-tag';
+                tag.textContent = profile;
+                tag.onclick = (e) => this.filterPicker(profile, e.target);
+                filters.appendChild(tag);
+            });
+        },
+
+        openPicker(section) {
+            this.state.currentPickingSection = section;
+            document.getElementById('picker-modal').classList.add('active');
+            this.filterPicker('all', document.querySelector('#picker-filters .filter-tag'));
+        },
+
+        closePicker() {
+            document.getElementById('picker-modal').classList.remove('active');
+            this.renderSelectedNotes();
+        },
+
+        filterPicker(category, el) {
+            document.querySelectorAll('#picker-filters .filter-tag').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+
+            const grid = document.getElementById('picker-grid');
+            grid.innerHTML = '';
+            
+            const isEn = this.state.currentLang === 'en';
+            const currentSet = this.state.tempNotes[this.state.currentPickingSection];
+
+            ALL_INGREDIENTS.forEach(item => {
+                if (category === 'all' || item.profile === category) {
+                    const div = document.createElement('div');
+                    div.className = `picker-item ${currentSet.has(item.name) ? 'selected' : ''}`;
+                    // Translate item name
+                    div.textContent = isEn ? (SCENT_TRANSLATIONS[item.name] || item.name) : item.name;
+                    div.onclick = () => {
+                        if (currentSet.has(item.name)) {
+                            currentSet.delete(item.name);
+                            div.classList.remove('selected');
+                        } else {
+                            currentSet.add(item.name);
+                            div.classList.add('selected');
+                        }
+                    };
+                    grid.appendChild(div);
+                }
+            });
+        },
+
+        renderSelectedNotes() {
+            const isEn = this.state.currentLang === 'en';
+            ['top', 'middle', 'base'].forEach(section => {
+                const container = document.getElementById(`selected-${section}`);
+                const placeholder = document.getElementById(`placeholder-${section}`);
+                container.innerHTML = '';
+                
+                const notes = Array.from(this.state.tempNotes[section]);
+                
+                if (notes.length > 0) {
+                    placeholder.style.display = 'none';
+                    notes.forEach(note => {
+                        const tag = document.createElement('div');
+                        tag.className = 'selected-note-tag';
+                        const displayName = isEn ? (SCENT_TRANSLATIONS[note] || note) : note;
+                        tag.innerHTML = `${displayName} <span onclick="event.stopPropagation(); app.removeNote('${section}', '${note}')" style="cursor:pointer;font-weight:bold;">&times;</span>`;
+                        container.appendChild(tag);
+                    });
+                } else {
+                    placeholder.style.display = 'inline';
+                }
+            });
+        },
+
+        removeNote(section, note) {
+            this.state.tempNotes[section].delete(note);
+            this.renderSelectedNotes();
+        },
+
+        // --- Core Algorithm & Visualization ---
+        processNetworkData() {
+            const nodeCounts = {}; // { "Jasmine": 5 }
+            const linkCounts = {}; // { "Jasmine-Rose": 2 }
+            const scentToProfile = {};
+
+            this.state.myPerfumes.forEach(p => {
+                // Collect all ingredients in this perfume
+                const allNotes = [...p.notes.top, ...p.notes.middle, ...p.notes.base];
+                const uniqueNotes = [...new Set(allNotes)]; // Avoid self-loops if user added same note twice
+
+                // Count nodes
+                uniqueNotes.forEach(note => {
+                    nodeCounts[note] = (nodeCounts[note] || 0) + 1;
+                    // Find profile
+                    if (!scentToProfile[note]) {
+                        const entry = ALL_INGREDIENTS.find(x => x.name === note);
+                        scentToProfile[note] = entry ? entry.profile : "其他";
+                    }
+                });
+
+                // Count links (Co-occurrence in the same perfume)
+                for (let i = 0; i < uniqueNotes.length; i++) {
+                    for (let j = i + 1; j < uniqueNotes.length; j++) {
+                        const n1 = uniqueNotes[i];
+                        const n2 = uniqueNotes[j];
+                        // Ensure alphabetical order for key
+                        const key = [n1, n2].sort().join("-");
+                        linkCounts[key] = (linkCounts[key] || 0) + 1;
+                    }
+                }
+            });
+
+            // Convert to arrays
+            const nodes = Object.entries(nodeCounts).map(([id, count]) => ({
+                id,
+                count,
+                group: scentToProfile[id]
+            }));
+
+            const links = Object.entries(linkCounts).map(([key, value]) => {
+                const [source, target] = key.split("-");
+                return { source, target, value };
+            });
+
+            return { nodes, links };
+        },
+
+        renderCard() {
+            if (typeof d3 === 'undefined') {
+                document.getElementById('viz-container').innerHTML = '<div style="text-align:center;padding-top:50px;color:red;">Visualization Library (D3.js) failed to load.<br>Please check internet connection.</div>';
+                return;
+            }
+
+            const data = this.processNetworkData();
+            
+            // 1. Analyze & Render Stats
+            this.renderStats(data);
+
+            // 2. Render D3
+            const container = document.getElementById('viz-container');
+            container.innerHTML = '';
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            if (data.nodes.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding-top:100px; color:#999;">请先添加香水</div>';
+                return;
+            }
+
+            const svg = d3.select("#viz-container").append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .call(d3.zoom().on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                }))
+                .append("g");
+                
+            const g = svg.append("g");
+
+            // Scales
+            const maxCount = d3.max(data.nodes, d => d.count) || 1;
+            const radiusScale = d3.scaleSqrt().domain([1, maxCount]).range([10, 40]);
+            
+            const maxLink = d3.max(data.links, d => d.value) || 1;
+            const widthScale = d3.scaleLinear().domain([1, maxLink]).range([1, 5]);
+
+            const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+            // Simulation
+            const simulation = d3.forceSimulation(data.nodes)
+                .force("link", d3.forceLink(data.links).id(d => d.id).distance(120))
+                .force("charge", d3.forceManyBody().strength(-300))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collide", d3.forceCollide().radius(d => radiusScale(d.count) + 10));
+
+            // Links
+            const link = g.append("g")
+                .selectAll("line")
+                .data(data.links)
+                .join("line")
+                .attr("stroke", "#ccc")
+                .attr("stroke-opacity", 0.6)
+                .attr("stroke-width", d => widthScale(d.value))
+                .on("mouseover", (event, d) => {
+                    const tooltip = d3.select(".tooltip");
+                    tooltip.style("opacity", 1)
+                           .html(`<strong>${d.source.id} & ${d.target.id}</strong><br/>共现 ${d.value} 次<br/>${this.generatePairingDesc(d.source.id, d.target.id)}`)
+                           .style("left", (event.pageX + 10) + "px")
+                           .style("top", (event.pageY - 10) + "px");
+                    d3.select(event.currentTarget).attr("stroke", "#fc4c02").attr("stroke-opacity", 1);
+                })
+                .on("mouseout", (event) => {
+                    d3.select(".tooltip").style("opacity", 0);
+                    d3.select(event.currentTarget).attr("stroke", "#ccc").attr("stroke-opacity", 0.6);
+                });
+
+            // Nodes
+            const node = g.append("g")
+                .selectAll("g")
+                .data(data.nodes)
+                .join("g")
+                .call(d3.drag()
+                    .on("start", (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0.3).restart();
+                        d.fx = d.x; d.fy = d.y;
+                    })
+                    .on("drag", (event, d) => { d.fx = event.x; d.fy = event.y; })
+                    .on("end", (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0);
+                        d.fx = null; d.fy = null;
+                    }));
+
+            node.append("circle")
+                .attr("r", d => radiusScale(d.count))
+                .attr("fill", d => colorScale(d.group))
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 2)
+                .style("cursor", "pointer")
+                .on("mouseover", (event, d) => {
+                    const tooltip = d3.select(".tooltip");
+                    const desc = DB.descriptions[d.id] || "独特的香气成分。";
+                    const isEn = this.state.currentLang === 'en';
+                    const displayName = isEn ? (SCENT_TRANSLATIONS[d.id] || d.id) : d.id;
+                    // Description translation is not fully implemented, showing fallback or original
+                    const displayDesc = isEn ? "Unique scent ingredient." : desc; 
+                    
+                    tooltip.style("opacity", 1)
+                           .html(`<strong>${displayName}</strong><br/>${displayDesc}<br/><span style='color:#666;font-size:12px'>${isEn ? 'Count' : '出现'} ${d.count} ${isEn ? '' : '次'}</span>`)
+                           .style("left", (event.pageX + 10) + "px")
+                           .style("top", (event.pageY - 10) + "px");
+                    d3.select(event.currentTarget).attr("stroke", "#fc4c02").attr("stroke-width", 3);
+                })
+                .on("mouseout", (event) => {
+                    d3.select(".tooltip").style("opacity", 0);
+                    d3.select(event.currentTarget).attr("stroke", "#fff").attr("stroke-width", 2);
+                });
+
+            node.append("text")
+                .text(d => this.state.currentLang === 'en' ? (SCENT_TRANSLATIONS[d.id] || d.id) : d.id)
+                .attr("dx", d => radiusScale(d.count) + 5)
+                .attr("dy", ".35em")
+                .style("font-size", "12px")
+                .style("font-family", "Georgia, serif")
+                .style("pointer-events", "none")
+                .style("text-shadow", "1px 1px 0 #fff");
+
+            simulation.on("tick", () => {
+                link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+                node.attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        },
+
+        generatePairingDesc(s, t) {
+            const p1 = this.getProfile(s);
+            const p2 = this.getProfile(t);
+            const lang = this.state.currentLang;
+            
+            // Sort to ensure consistent key lookup (e.g., "Woody-Floral" vs "Floral-Woody")
+            const pairKey = [p1, p2].sort().join("-");
+            
+            const combinations_zh = {
+                // Same Family Combinations
+                "柑橘-柑橘": "层层叠叠的阳光气息，从酸涩到甘甜的立体渐变。",
+                "花香-花香": "仿佛置身于盛大的花园，千姿百态的芬芳争奇斗艳。",
+                "木质-木质": "如同步入古老森林深处，干燥与湿润的木质气息交响共鸣。",
+                "辛辣-辛辣": "热烈与刺激的碰撞，如同烟火般在嗅觉中炸裂。",
+                "美食-美食": "极致的甜蜜诱惑，多重口感交织出的幸福与满足。",
+                "草本-草本": "雨后原野的清新气息，绿意盎然的自然呼吸。",
+                
+                // Cross Family Combinations
+                "木质-花香": "深沉木质与柔美花香的经典平衡，刚柔并济，优雅而持久。",
+                "柑橘-木质": "清新的柑橘照亮了沉稳的木质，带来如阳光穿透森林般的通透感。",
+                "柑橘-花香": "明媚的果香衬托出花朵的精致，如同清晨沾满露水的花束。",
+                "木质-辛辣": "温暖辛辣点燃干燥木质，营造出充满张力的深邃与神秘。",
+                "花香-辛辣": "娇艳花朵中暗藏的危险与诱惑，甜美中带着一丝锐利的锋芒。",
+                "美食-木质": "温暖的美食香气包裹着坚实的木质，带来如同冬日壁炉般的安宁。",
+                "美食-花香": "甜蜜糖果与馥郁花香的交织，仿佛一场浪漫而梦幻的下午茶。",
+                "草本-柑橘": "芳香草本与酸爽柑橘的结合，带来极致的洁净感与提神效果。",
+                "草本-木质": "自然草本与大地木质的融合，还原了最纯粹的自然风貌。",
+                "树脂-木质": "古老树脂的焚香感渗入木纹，营造出神圣、静谧的冥想氛围。",
+                "动物-花香": "感性的动物气息赋予花香肉欲与温度，散发着原始而迷人的魅力。",
+                "动物-木质": "野性与沉稳的结合，散发出成熟而富有阅历的男性荷尔蒙。",
+                "果香-花香": "多汁果肉与盛开花朵的甜美二重奏，充满青春活力与欢愉。",
+                "柑橘-辛辣": "清爽与热辣的强烈对比，带来充满爆发力的能量感。",
+                "树脂-辛辣": "温暖厚重的东方调协，如同丝绸之路上流动的黄金与香料。",
+                "美食-辛辣": "甜辣交织的异域风情，如同加了香料的热红酒般暖人心脾。",
+                "草本-花香": "绿意盎然的草本中点缀着野花，清新自然而不失柔美。",
+                "果香-木质": "甜美果香中和了木质的严肃，带来一种轻松惬意的现代感。",
+                "动物-树脂": "深邃、黑暗且粘稠的质感，如同夜色中流动的琥珀。",
+                "绿叶-花香": "带着露水的绿叶衬托出花朵的鲜活，还原了花枝被折断时的青涩气息。"
+            };
+
+            const combinations_en = {
+                 // Same Family Combinations
+                "柑橘-柑橘": "Layers of sunlight, a 3D gradient from tart to sweet.",
+                "花香-花香": "Like standing in a grand garden, a symphony of blooming fragrances.",
+                "木质-木质": "Walking deep into an ancient forest, dry and damp wood notes resonating.",
+                "辛辣-辛辣": "A collision of heat and spice, exploding like fireworks in the senses.",
+                "美食-美食": "Ultimate sweet temptation, a blissful mix of textures and tastes.",
+                "草本-草本": "Fresh scent of fields after rain, the breathing of nature.",
+                
+                // Cross Family Combinations
+                "木质-花香": "Classic balance of deep wood and soft florals, elegant and lasting.",
+                "柑橘-木质": "Fresh citrus illuminates steady wood, like sunlight piercing through a forest.",
+                "柑橘-花香": "Bright fruit notes highlight delicate flowers, like a dew-covered bouquet.",
+                "木质-辛辣": "Warm spices ignite dry wood, creating tension and mystery.",
+                "花香-辛辣": "Danger hidden in delicate flowers, sweet with a sharp edge.",
+                "美食-木质": "Warm gourmand notes wrapping solid wood, peaceful as a winter fireplace.",
+                "美食-花香": "Interweaving of sweet candy and rich florals, a romantic afternoon tea.",
+                "草本-柑橘": "Aromatic herbs meet zesty citrus, ultimate cleanliness and energy.",
+                "草本-木质": "Natural herbs and earthy wood, restoring the purest landscape.",
+                "树脂-木质": "Ancient resin incense seeping into wood grain, sacred and meditative.",
+                "动物-花香": "Sensual animalic notes giving florals warmth and flesh, primal charm.",
+                "动物-木质": "Combination of wildness and stability, mature and experienced aura.",
+                "果香-花香": "Juicy fruit and blooming flowers, full of youth and joy.",
+                "柑橘-辛辣": "Strong contrast of fresh and spicy, explosive energy.",
+                "树脂-辛辣": "Warm and heavy oriental accord, like flowing gold and spices on the Silk Road.",
+                "美食-辛辣": "Sweet and spicy exotic flair, like mulled wine with spices.",
+                "草本-花香": "Wildflowers dotting green herbs, fresh and natural yet soft.",
+                "果香-木质": "Sweet fruit softens serious wood, a relaxed modern vibe.",
+                "动物-树脂": "Deep, dark, and viscous texture, like amber flowing in the night.",
+                "绿叶-花香": "Dewy leaves highlighting fresh flowers, the green scent of broken stems."
+            };
+
+            const combinations = lang === 'zh' ? combinations_zh : combinations_en;
+
+            if (combinations[pairKey]) {
+                return combinations[pairKey];
+            }
+            
+            // Fallback
+            const format = (str, ...args) => str.replace(/{(\d+)}/g, (match, number) => typeof args[number] != 'undefined' ? args[number] : match);
+            const t = TRANSLATIONS[lang].card;
+            
+            if (p1 === p2) return format(t.pairing_same, p1);
+            return format(t.pairing_mix, p1, p2);
+        },
+
+        getProfile(note) {
+            const entry = ALL_INGREDIENTS.find(x => x.name === note);
+            return entry ? entry.profile : "其他";
+        },
+
+        renderStats(data) {
+            const t = TRANSLATIONS[this.state.currentLang].card;
+            const isEn = this.state.currentLang === 'en';
+            
+            // 1. Top Scents
+            const topScents = [...data.nodes].sort((a,b) => b.count - a.count).slice(0, 3);
+            document.getElementById('stat-top-scents').innerHTML = topScents.map(n => 
+                `<li><span>${isEn ? (SCENT_TRANSLATIONS[n.id] || n.id) : n.id}</span> <span class="stat-val">${n.count}</span></li>`
+            ).join('');
+
+            // 2. Top Pairs
+            const topPairs = [...data.links].sort((a,b) => b.value - a.value).slice(0, 3);
+            document.getElementById('stat-top-pairs').innerHTML = topPairs.map(l => {
+                const s = l.source.id || l.source;
+                const target = l.target.id || l.target;
+                const sName = isEn ? (SCENT_TRANSLATIONS[s] || s) : s;
+                const tName = isEn ? (SCENT_TRANSLATIONS[target] || target) : target;
+                return `<li><span>${sName} & ${tName}</span> <span class="stat-val">${l.value}</span></li>`;
+            }).join('');
+
+            // 3. Overview
+            document.getElementById('stat-overview').innerHTML = `
+                <li><span data-i18n="card.perfumes">${t.perfumes}</span> <span class="stat-val">${this.state.myPerfumes.length} ${t.bottles}</span></li>
+                <li><span data-i18n="card.scents">${t.scents}</span> <span class="stat-val">${data.nodes.length} ${t.types}</span></li>
+            `;
+
+            // 4. Poetic Title & Quote
+            this.generatePoeticContent(topScents);
+        },
+
+        generatePoeticContent(topScents) {
+            const lang = this.state.currentLang;
+            const t = TRANSLATIONS[lang].card;
+            
+            if (topScents.length === 0) {
+                document.getElementById('card-user-title').textContent = t.explorer;
+                document.getElementById('card-poetic-quote').textContent = `“${t.default_quote}”`;
+                return;
+            }
+            
+            const dominant = topScents[0].group;
+            
+            const titles = {
+                zh: {
+                    "木质": "静谧森林的守望者",
+                    "花香": "繁花盛开的梦境",
+                    "柑橘": "阳光碎片的捕手",
+                    "辛辣": "异域香料的吟游诗人",
+                    "美食": "甜蜜时光的收藏家",
+                    "海洋": "蔚蓝深海的潜行者",
+                    "草本": "雨后原野的漫步者"
+                },
+                en: {
+                    "木质": "Guardian of the Silent Forest",
+                    "花香": "Dream of Blooming Flowers",
+                    "柑橘": "Catcher of Sunlight Fragments",
+                    "辛辣": "Bard of Exotic Spices",
+                    "美食": "Collector of Sweet Moments",
+                    "海洋": "Diver of the Deep Blue",
+                    "草本": "Wanderer of After-Rain Fields"
+                }
+            };
+            
+            const quotes = {
+                zh: {
+                    "木质": "根植于大地，呼吸于云端，你的灵魂有树木的年轮。",
+                    "花香": "在此刻，万物皆为你绽放，空气中满是温柔的絮语。",
+                    "柑橘": "明亮如夏日清晨的第一缕光，驱散所有阴霾。",
+                    "辛辣": "热烈而深邃，如同古老集市中跳动的火焰。",
+                    "美食": "记忆是甜的，如同刚刚出炉的香草蛋糕，温暖而安宁。",
+                    "草本": "风吹过青草的痕迹，是你清澈而自由的心跳。"
+                },
+                en: {
+                    "木质": "Rooted in earth, breathing in clouds, your soul bears the rings of trees.",
+                    "花香": "In this moment, everything blooms for you, the air filled with gentle whispers.",
+                    "柑橘": "Bright as the first light of a summer morning, dispelling all haze.",
+                    "辛辣": "Passionate and profound, like a dancing flame in an ancient bazaar.",
+                    "美食": "Memory is sweet, like a freshly baked vanilla cake, warm and peaceful.",
+                    "草本": "The trace of wind over grass is your clear and free heartbeat."
+                }
+            };
+
+            const title = titles[lang][dominant] || t.explorer;
+            const quote = quotes[lang][dominant] || t.default_quote;
+
+            document.getElementById('card-user-title').textContent = title;
+            document.getElementById('card-poetic-quote').textContent = `“${quote}”`;
+        },
+
+        // --- Social ---
+        renderSocial() {
+            const container = document.getElementById('match-list');
+            const t = TRANSLATIONS[this.state.currentLang].social;
+            const isEn = this.state.currentLang === 'en';
+            container.innerHTML = '';
+            
+            // Collect my all unique ingredients
+            const myNotes = new Set();
+            this.state.myPerfumes.forEach(p => {
+                p.notes.top.forEach(n => myNotes.add(n));
+                p.notes.middle.forEach(n => myNotes.add(n));
+                p.notes.base.forEach(n => myNotes.add(n));
+            });
+            const myNotesArray = Array.from(myNotes);
+
+            if (myNotesArray.length === 0) {
+                container.innerHTML = `<div style="text-align:center;color:#999;">${t.no_perfume_tip}</div>`;
+                return;
+            }
+
+            // Simple Jaccard Index
+            const matches = MOCK_USERS.map(user => {
+                const otherNotes = new Set(user.ingredients);
+                const intersection = myNotesArray.filter(x => otherNotes.has(x));
+                const union = new Set([...myNotesArray, ...user.ingredients]);
+                const score = Math.round((intersection.length / union.size) * 100);
+                return { ...user, score, common: intersection };
+            }).sort((a,b) => b.score - a.score);
+
+            matches.forEach(m => {
+                const el = document.createElement('div');
+                el.className = 'match-card';
+                
+                // Translate common ingredients
+                const commonStr = m.common.map(n => isEn ? (SCENT_TRANSLATIONS[n] || n) : n).join(", ");
+                
+                el.innerHTML = `
+                    <div class="match-avatar">${m.name[0]}</div>
+                    <div class="match-info">
+                        <h3 class="match-name">${m.name}</h3>
+                        <div style="font-size:12px; color:#666; margin-bottom:5px;">${m.bio}</div>
+                        <div style="font-size:11px; color:var(--brand-orange);">
+                            ${t.common_likes}: ${commonStr || t.no_overlap}
+                        </div>
+                    </div>
+                    <div class="match-score">
+                        <span class="score-val">${m.score}%</span>
+                        <span class="score-label">${t.match_score}</span>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+        if (window.app) {
+            window.app.init();
+        } else {
+            console.error("App not initialized");
+        }
+    });
+</script>
+</body>
+</html>

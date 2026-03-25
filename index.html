@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>气味相投 - ScentMate</title>
+    <style>
+        :root {
+            --brand-orange: #fc4c02;
+            --brand-dark: #333;
+            --brand-bg: #fbfaf5; /* Warm off-white */
+            --brand-font-serif: "Georgia", "Times New Roman", serif;
+            --brand-font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: var(--brand-font-sans);
+            background-color: var(--brand-bg);
+            color: var(--brand-dark);
+        }
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 0;
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        h1 {
+            font-family: var(--brand-font-serif);
+            font-weight: normal;
+            font-size: 24px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0;
+            color: var(--brand-dark);
+        }
+        .subtitle {
+            font-family: var(--brand-font-sans);
+            font-size: 12px;
+            letter-spacing: 1px;
+            margin-top: 5px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        #container { width: 100vw; height: 100vh; }
+        .tooltip {
+            position: absolute;
+            text-align: left;
+            padding: 12px 16px;
+            font-family: var(--brand-font-serif);
+            font-size: 14px;
+            background: #fff;
+            color: #333;
+            border: 1px solid var(--brand-orange);
+            border-radius: 0; /* Sharp edges for luxury feel */
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            min-width: 120px;
+            z-index: 100;
+        }
+        .tooltip strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 16px;
+            color: var(--brand-orange);
+            border-bottom: 1px solid #eee;
+            padding-bottom: 4px;
+        }
+        .analysis-panel {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            width: 280px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border: 1px solid #eee;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            font-family: var(--brand-font-sans);
+            max-height: calc(100vh - 140px);
+            overflow-y: auto;
+            z-index: 20;
+        }
+        .analysis-panel h2 {
+            font-family: var(--brand-font-serif);
+            font-size: 18px;
+            color: var(--brand-orange);
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--brand-orange);
+            padding-bottom: 5px;
+        }
+        .collection-poetic-title {
+            font-family: var(--brand-font-serif);
+            font-size: 20px;
+            color: var(--brand-dark);
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            font-style: italic;
+            line-height: 1.4;
+        }
+        .analysis-panel h3 {
+            font-size: 14px;
+            color: #666;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .analysis-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .analysis-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px dashed #eee;
+            font-size: 13px;
+        }
+        .analysis-list li:last-child {
+            border-bottom: none;
+        }
+        .highlight-number {
+            font-weight: bold;
+            color: var(--brand-orange);
+        }
+        .summary-text {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #444;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+<div id="control-panel" style="position:absolute; top:20px; right:20px; z-index:100; text-align:right;">
+    <button id="btn-open-modal" style="padding:10px 20px; background:var(--brand-orange); color:white; border:none; cursor:pointer; font-family:var(--brand-font-serif); font-size:16px;">+ 创建我的收藏</button>
+</div>
+
+<div id="input-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); z-index:200; overflow-y:auto;">
+    <div style="max-width:800px; margin:50px auto; padding:40px; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.1); border:1px solid #eee;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+            <h2 style="margin:0; font-family:var(--brand-font-serif); color:var(--brand-orange);">构建您的气味网络</h2>
+            <button id="btn-close-modal" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+        </div>
+        
+        <div class="tabs" style="display:flex; border-bottom:1px solid #eee; margin-bottom:20px;">
+            <button class="tab-btn active" onclick="switchTab('text')" style="padding:10px 20px; background:none; border:none; border-bottom:2px solid var(--brand-orange); font-weight:bold;">文字输入</button>
+            <button class="tab-btn" onclick="switchTab('image')" style="padding:10px 20px; background:none; border:none; color:#999;">图片识别</button>
+            <button class="tab-btn" onclick="switchTab('voice')" style="padding:10px 20px; background:none; border:none; color:#999;">语音录入</button>
+        </div>
+
+        <div id="tab-text" class="tab-content">
+            <p style="color:#666; font-size:14px;">输入格式：每行一款香水，格式为 "香水名: 成分1, 成分2, 成分3"</p>
+            <textarea id="text-input" style="width:100%; height:200px; padding:15px; border:1px solid #ddd; font-family:monospace; line-height:1.5;" placeholder="示例：&#10;蔚蓝: 柑橘, 香根草, 雪松, 葡萄柚&#10;大地: 橙子, 葡萄柚, 胡椒, 天竺葵, 广藿香"></textarea>
+        </div>
+
+        <div id="tab-image" class="tab-content" style="display:none; text-align:center; padding:40px; border:2px dashed #ddd;">
+            <input type="file" id="image-input" accept="image/*" style="display:none;" onchange="handleImageUpload(this)">
+            <label for="image-input" style="cursor:pointer; display:block;">
+                <div style="font-size:48px; color:#ddd; margin-bottom:10px;">📷</div>
+                <div style="color:#666;">点击上传香水图片</div>
+                <div style="font-size:12px; color:#999; margin-top:5px;">支持瓶身识别或香调表截图 (模拟)</div>
+            </label>
+            <div id="image-preview" style="margin-top:20px; max-width:100%;"></div>
+        </div>
+
+        <div id="tab-voice" class="tab-content" style="display:none; text-align:center; padding:40px;">
+            <button id="btn-record" style="width:80px; height:80px; border-radius:50%; background:#f5f5f5; border:none; cursor:pointer; font-size:32px; box-shadow:0 4px 10px rgba(0,0,0,0.1); transition:all 0.2s;">🎙️</button>
+            <p id="voice-status" style="margin-top:20px; color:#666;">点击麦克风开始说话</p>
+            <p style="font-size:12px; color:#999;">请说出香水名称及包含的香料，例如："我有一瓶大地，里面有葡萄柚和胡椒"</p>
+            <div id="voice-result" style="margin-top:20px; font-style:italic; color:#333;"></div>
+        </div>
+
+        <div style="margin-top:30px; text-align:right; border-top:1px solid #eee; padding-top:20px;">
+            <button onclick="processAndVisualize()" style="padding:12px 30px; background:var(--brand-orange); color:white; border:none; font-size:16px; cursor:pointer;">生成可视化分析</button>
+        </div>
+    </div>
+</div>
+<header>
+    <h1>气味相投 ScentMate</h1>
+    <div class="subtitle">创建属于自己的气味收藏夹！</div>
+</header>
+<div id="container"></div>
+<div class="tooltip"></div>
+<div class="analysis-panel" id="analysisPanel">
+    <div id="poeticTitle" class="collection-poetic-title"></div>
+    <h2>个人气味收藏分析</h2>
+    <div id="analysisContent"></div>
+</div>
+<script>
+    let data = {"nodes": [{"id": "香根草", "group": 0, "count": 5}, {"id": "小豆蔻", "group": 1, "count": 4}, {"id": "茉莉", "group": 2, "count": 4}, {"id": "香柠檬", "group": 3, "count": 4}, {"id": "檀香木", "group": 4, "count": 3}, {"id": "乳香", "group": 5, "count": 3}, {"id": "橡木", "group": 6, "count": 2}, {"id": "广藿香", "group": 7, "count": 2}, {"id": "香草", "group": 8, "count": 2}, {"id": "零陵香豆", "group": 9, "count": 2}, {"id": "薄荷", "group": 0, "count": 2}, {"id": "苦橙叶", "group": 1, "count": 2}, {"id": "麝香", "group": 2, "count": 2}, {"id": "粉红胡椒", "group": 3, "count": 2}, {"id": "雪松", "group": 4, "count": 2}, {"id": "生姜", "group": 5, "count": 2}, {"id": "柠檬", "group": 6, "count": 2}, {"id": "苹果", "group": 7, "count": 2}, {"id": "玫瑰", "group": 8, "count": 2}, {"id": "愈创木", "group": 9, "count": 2}, {"id": "苦橙", "group": 0, "count": 1}, {"id": "罗勒", "group": 1, "count": 1}, {"id": "常春藤", "group": 2, "count": 1}, {"id": "橡木苔", "group": 3, "count": 1}, {"id": "威士忌", "group": 4, "count": 1}, {"id": "烟雾", "group": 5, "count": 1}, {"id": "麦芽", "group": 6, "count": 1}, {"id": "康乃馨", "group": 7, "count": 1}, {"id": "黄葵", "group": 8, "count": 1}, {"id": "醛", "group": 9, "count": 1}, {"id": "尤加利", "group": 0, "count": 1}, {"id": "杜松", "group": 1, "count": 1}, {"id": "迷迭香", "group": 2, "count": 1}, {"id": "薰衣草", "group": 3, "count": 1}, {"id": "劳丹脂", "group": 4, "count": 1}, {"id": "沉香(乌木)", "group": 5, "count": 1}, {"id": "琥珀", "group": 6, "count": 1}, {"id": "海藻", "group": 7, "count": 1}, {"id": "干邑白兰地", "group": 8, "count": 1}, {"id": "蓝色洋甘菊", "group": 9, "count": 1}, {"id": "橙花", "group": 0, "count": 1}, {"id": "紫罗兰叶", "group": 1, "count": 1}, {"id": "白松香", "group": 2, "count": 1}, {"id": "龙涎香", "group": 3, "count": 1}, {"id": "肉豆蔻", "group": 4, "count": 1}, {"id": "胡萝卜籽", "group": 5, "count": 1}, {"id": "苔藓", "group": 6, "count": 1}, {"id": "冷杉香脂", "group": 7, "count": 1}, {"id": "茶叶", "group": 8, "count": 1}, {"id": "大米", "group": 9, "count": 1}, {"id": "绿薄荷", "group": 0, "count": 1}, {"id": "丁香", "group": 1, "count": 1}, {"id": "桃花心木", "group": 2, "count": 1}, {"id": "菩提花", "group": 3, "count": 1}, {"id": "龙蒿", "group": 4, "count": 1}, {"id": "椴树花", "group": 5, "count": 1}, {"id": "铃兰", "group": 6, "count": 1}, {"id": "月桂叶", "group": 7, "count": 1}, {"id": "洋槐", "group": 8, "count": 1}, {"id": "干草", "group": 9, "count": 1}, {"id": "马鞭草", "group": 0, "count": 1}, {"id": "芫荽", "group": 1, "count": 1}, {"id": "青草", "group": 2, "count": 1}, {"id": "树莓", "group": 3, "count": 1}, {"id": "梧桐", "group": 4, "count": 1}, {"id": "胡椒", "group": 5, "count": 1}, {"id": "老鹳草", "group": 6, "count": 1}, {"id": "柏树", "group": 7, "count": 1}, {"id": "豆乳", "group": 8, "count": 1}, {"id": "米香", "group": 9, "count": 1}, {"id": "芋头", "group": 0, "count": 1}, {"id": "鸢尾", "group": 1, "count": 1}, {"id": "莎草", "group": 2, "count": 1}, {"id": "辛香料", "group": 3, "count": 1}, {"id": "乌龙茶", "group": 4, "count": 1}, {"id": "兰花", "group": 5, "count": 1}, {"id": "不凋花", "group": 6, "count": 1}, {"id": "佛手柑", "group": 7, "count": 1}, {"id": "橙子", "group": 8, "count": 1}, {"id": "肉桂", "group": 9, "count": 1}, {"id": "姜", "group": 0, "count": 1}, {"id": "天芥菜", "group": 1, "count": 1}, {"id": "焦糖", "group": 2, "count": 1}], "links": [{"source": "小豆蔻", "target": "常春藤", "value": 1}, {"source": "小豆蔻", "target": "橡木苔", "value": 1}, {"source": "小豆蔻", "target": "罗勒", "value": 1}, {"source": "小豆蔻", "target": "苦橙", "value": 1}, {"source": "常春藤", "target": "橡木苔", "value": 1}, {"source": "常春藤", "target": "罗勒", "value": 1}, {"source": "常春藤", "target": "苦橙", "value": 1}, {"source": "橡木苔", "target": "罗勒", "value": 1}, {"source": "橡木苔", "target": "苦橙", "value": 1}, {"source": "罗勒", "target": "苦橙", "value": 1}, {"source": "威士忌", "target": "小豆蔻", "value": 1}, {"source": "威士忌", "target": "广藿香", "value": 1}, {"source": "威士忌", "target": "康乃馨", "value": 1}, {"source": "威士忌", "target": "橡木", "value": 1}, {"source": "威士忌", "target": "檀香木", "value": 1}, {"source": "威士忌", "target": "烟雾", "value": 1}, {"source": "威士忌", "target": "茉莉", "value": 1}, {"source": "威士忌", "target": "零陵香豆", "value": 1}, {"source": "威士忌", "target": "香草", "value": 1}, {"source": "威士忌", "target": "麦芽", "value": 1}, {"source": "威士忌", "target": "黄葵", "value": 1}, {"source": "小豆蔻", "target": "广藿香", "value": 1}, {"source": "小豆蔻", "target": "康乃馨", "value": 1}, {"source": "小豆蔻", "target": "橡木", "value": 1}, {"source": "小豆蔻", "target": "檀香木", "value": 1}, {"source": "小豆蔻", "target": "烟雾", "value": 1}, {"source": "小豆蔻", "target": "茉莉", "value": 1}, {"source": "小豆蔻", "target": "零陵香豆", "value": 1}, {"source": "小豆蔻", "target": "香草", "value": 1}, {"source": "小豆蔻", "target": "麦芽", "value": 1}, {"source": "小豆蔻", "target": "黄葵", "value": 1}, {"source": "广藿香", "target": "康乃馨", "value": 1}, {"source": "广藿香", "target": "橡木", "value": 1}, {"source": "广藿香", "target": "檀香木", "value": 2}, {"source": "广藿香", "target": "烟雾", "value": 1}, {"source": "广藿香", "target": "茉莉", "value": 1}, {"source": "广藿香", "target": "零陵香豆", "value": 1}, {"source": "广藿香", "target": "香草", "value": 1}, {"source": "广藿香", "target": "麦芽", "value": 1}, {"source": "广藿香", "target": "黄葵", "value": 1}, {"source": "康乃馨", "target": "橡木", "value": 1}, {"source": "康乃馨", "target": "檀香木", "value": 1}, {"source": "康乃馨", "target": "烟雾", "value": 1}, {"source": "康乃馨", "target": "茉莉", "value": 1}, {"source": "康乃馨", "target": "零陵香豆", "value": 1}, {"source": "康乃馨", "target": "香草", "value": 1}, {"source": "康乃馨", "target": "麦芽", "value": 1}, {"source": "康乃馨", "target": "黄葵", "value": 1}, {"source": "橡木", "target": "檀香木", "value": 1}, {"source": "橡木", "target": "烟雾", "value": 1}, {"source": "橡木", "target": "茉莉", "value": 1}, {"source": "橡木", "target": "零陵香豆", "value": 1}, {"source": "橡木", "target": "香草", "value": 1}, {"source": "橡木", "target": "麦芽", "value": 1}, {"source": "橡木", "target": "黄葵", "value": 1}, {"source": "檀香木", "target": "烟雾", "value": 1}, {"source": "檀香木", "target": "茉莉", "value": 1}, {"source": "檀香木", "target": "零陵香豆", "value": 1}, {"source": "檀香木", "target": "香草", "value": 1}, {"source": "檀香木", "target": "麦芽", "value": 1}, {"source": "檀香木", "target": "黄葵", "value": 1}, {"source": "烟雾", "target": "茉莉", "value": 1}, {"source": "烟雾", "target": "零陵香豆", "value": 1}, {"source": "烟雾", "target": "香草", "value": 1}, {"source": "烟雾", "target": "麦芽", "value": 1}, {"source": "烟雾", "target": "黄葵", "value": 1}, {"source": "茉莉", "target": "零陵香豆", "value": 1}, {"source": "茉莉", "target": "香草", "value": 2}, {"source": "茉莉", "target": "麦芽", "value": 1}, {"source": "茉莉", "target": "黄葵", "value": 1}, {"source": "零陵香豆", "target": "香草", "value": 1}, {"source": "零陵香豆", "target": "麦芽", "value": 1}, {"source": "零陵香豆", "target": "黄葵", "value": 1}, {"source": "香草", "target": "麦芽", "value": 1}, {"source": "香草", "target": "黄葵", "value": 1}, {"source": "麦芽", "target": "黄葵", "value": 1}, {"source": "乳香", "target": "劳丹脂", "value": 1}, {"source": "乳香", "target": "尤加利", "value": 1}, {"source": "乳香", "target": "广藿香", "value": 1}, {"source": "乳香", "target": "杜松", "value": 1}, {"source": "乳香", "target": "檀香木", "value": 1}, {"source": "乳香", "target": "沉香(乌木)", "value": 1}, {"source": "乳香", "target": "琥珀", "value": 1}, {"source": "乳香", "target": "苦橙叶", "value": 1}, {"source": "乳香", "target": "薄荷", "value": 1}, {"source": "乳香", "target": "薰衣草", "value": 1}, {"source": "乳香", "target": "迷迭香", "value": 1}, {"source": "乳香", "target": "醛", "value": 1}, {"source": "乳香", "target": "香柠檬", "value": 1}, {"source": "乳香", "target": "香根草", "value": 1}, {"source": "乳香", "target": "麝香", "value": 1}, {"source": "劳丹脂", "target": "尤加利", "value": 1}, {"source": "劳丹脂", "target": "广藿香", "value": 1}, {"source": "劳丹脂", "target": "杜松", "value": 1}, {"source": "劳丹脂", "target": "檀香木", "value": 1}, {"source": "劳丹脂", "target": "沉香(乌木)", "value": 1}, {"source": "劳丹脂", "target": "琥珀", "value": 1}, {"source": "劳丹脂", "target": "苦橙叶", "value": 1}, {"source": "劳丹脂", "target": "薄荷", "value": 1}, {"source": "劳丹脂", "target": "薰衣草", "value": 1}, {"source": "劳丹脂", "target": "迷迭香", "value": 1}, {"source": "劳丹脂", "target": "醛", "value": 1}, {"source": "劳丹脂", "target": "香柠檬", "value": 1}, {"source": "劳丹脂", "target": "香根草", "value": 1}, {"source": "劳丹脂", "target": "麝香", "value": 1}, {"source": "尤加利", "target": "广藿香", "value": 1}, {"source": "尤加利", "target": "杜松", "value": 1}, {"source": "尤加利", "target": "檀香木", "value": 1}, {"source": "尤加利", "target": "沉香(乌木)", "value": 1}, {"source": "尤加利", "target": "琥珀", "value": 1}, {"source": "尤加利", "target": "苦橙叶", "value": 1}, {"source": "尤加利", "target": "薄荷", "value": 1}, {"source": "尤加利", "target": "薰衣草", "value": 1}, {"source": "尤加利", "target": "迷迭香", "value": 1}, {"source": "尤加利", "target": "醛", "value": 1}, {"source": "尤加利", "target": "香柠檬", "value": 1}, {"source": "尤加利", "target": "香根草", "value": 1}, {"source": "尤加利", "target": "麝香", "value": 1}, {"source": "广藿香", "target": "杜松", "value": 1}, {"source": "广藿香", "target": "沉香(乌木)", "value": 1}, {"source": "广藿香", "target": "琥珀", "value": 1}, {"source": "广藿香", "target": "苦橙叶", "value": 1}, {"source": "广藿香", "target": "薄荷", "value": 1}, {"source": "广藿香", "target": "薰衣草", "value": 1}, {"source": "广藿香", "target": "迷迭香", "value": 1}, {"source": "广藿香", "target": "醛", "value": 1}, {"source": "广藿香", "target": "香柠檬", "value": 1}, {"source": "广藿香", "target": "香根草", "value": 1}, {"source": "广藿香", "target": "麝香", "value": 1}, {"source": "杜松", "target": "檀香木", "value": 1}, {"source": "杜松", "target": "沉香(乌木)", "value": 1}, {"source": "杜松", "target": "琥珀", "value": 1}, {"source": "杜松", "target": "苦橙叶", "value": 1}, {"source": "杜松", "target": "薄荷", "value": 1}, {"source": "杜松", "target": "薰衣草", "value": 1}, {"source": "杜松", "target": "迷迭香", "value": 1}, {"source": "杜松", "target": "醛", "value": 1}, {"source": "杜松", "target": "香柠檬", "value": 1}, {"source": "杜松", "target": "香根草", "value": 1}, {"source": "杜松", "target": "麝香", "value": 1}, {"source": "檀香木", "target": "沉香(乌木)", "value": 1}, {"source": "檀香木", "target": "琥珀", "value": 1}, {"source": "檀香木", "target": "苦橙叶", "value": 1}, {"source": "檀香木", "target": "薄荷", "value": 1}, {"source": "檀香木", "target": "薰衣草", "value": 1}, {"source": "檀香木", "target": "迷迭香", "value": 1}, {"source": "檀香木", "target": "醛", "value": 1}, {"source": "檀香木", "target": "香柠檬", "value": 1}, {"source": "檀香木", "target": "香根草", "value": 2}, {"source": "檀香木", "target": "麝香", "value": 2}, {"source": "沉香(乌木)", "target": "琥珀", "value": 1}, {"source": "沉香(乌木)", "target": "苦橙叶", "value": 1}, {"source": "沉香(乌木)", "target": "薄荷", "value": 1}, {"source": "沉香(乌木)", "target": "薰衣草", "value": 1}, {"source": "沉香(乌木)", "target": "迷迭香", "value": 1}, {"source": "沉香(乌木)", "target": "醛", "value": 1}, {"source": "沉香(乌木)", "target": "香柠檬", "value": 1}, {"source": "沉香(乌木)", "target": "香根草", "value": 1}, {"source": "沉香(乌木)", "target": "麝香", "value": 1}, {"source": "琥珀", "target": "苦橙叶", "value": 1}, {"source": "琥珀", "target": "薄荷", "value": 1}, {"source": "琥珀", "target": "薰衣草", "value": 1}, {"source": "琥珀", "target": "迷迭香", "value": 1}, {"source": "琥珀", "target": "醛", "value": 1}, {"source": "琥珀", "target": "香柠檬", "value": 1}, {"source": "琥珀", "target": "香根草", "value": 1}, {"source": "琥珀", "target": "麝香", "value": 1}, {"source": "苦橙叶", "target": "薄荷", "value": 1}, {"source": "苦橙叶", "target": "薰衣草", "value": 1}, {"source": "苦橙叶", "target": "迷迭香", "value": 1}, {"source": "苦橙叶", "target": "醛", "value": 1}, {"source": "苦橙叶", "target": "香柠檬", "value": 2}, {"source": "苦橙叶", "target": "香根草", "value": 1}, {"source": "苦橙叶", "target": "麝香", "value": 1}, {"source": "薄荷", "target": "薰衣草", "value": 1}, {"source": "薄荷", "target": "迷迭香", "value": 1}, {"source": "薄荷", "target": "醛", "value": 1}, {"source": "薄荷", "target": "香柠檬", "value": 2}, {"source": "薄荷", "target": "香根草", "value": 2}, {"source": "薄荷", "target": "麝香", "value": 1}, {"source": "薰衣草", "target": "迷迭香", "value": 1}, {"source": "薰衣草", "target": "醛", "value": 1}, {"source": "薰衣草", "target": "香柠檬", "value": 1}, {"source": "薰衣草", "target": "香根草", "value": 1}, {"source": "薰衣草", "target": "麝香", "value": 1}, {"source": "迷迭香", "target": "醛", "value": 1}, {"source": "迷迭香", "target": "香柠檬", "value": 1}, {"source": "迷迭香", "target": "香根草", "value": 1}, {"source": "迷迭香", "target": "麝香", "value": 1}, {"source": "醛", "target": "香柠檬", "value": 1}, {"source": "醛", "target": "香根草", "value": 1}, {"source": "醛", "target": "麝香", "value": 1}, {"source": "香柠檬", "target": "香根草", "value": 3}, {"source": "香柠檬", "target": "麝香", "value": 1}, {"source": "香根草", "target": "麝香", "value": 2}, {"source": "乳香", "target": "干邑白兰地", "value": 1}, {"source": "乳香", "target": "橙花", "value": 1}, {"source": "乳香", "target": "橡木", "value": 1}, {"source": "乳香", "target": "海藻", "value": 1}, {"source": "乳香", "target": "白松香", "value": 1}, {"source": "乳香", "target": "紫罗兰叶", "value": 1}, {"source": "乳香", "target": "蓝色洋甘菊", "value": 1}, {"source": "乳香", "target": "龙涎香", "value": 1}, {"source": "干邑白兰地", "target": "橙花", "value": 1}, {"source": "干邑白兰地", "target": "橡木", "value": 1}, {"source": "干邑白兰地", "target": "海藻", "value": 1}, {"source": "干邑白兰地", "target": "白松香", "value": 1}, {"source": "干邑白兰地", "target": "紫罗兰叶", "value": 1}, {"source": "干邑白兰地", "target": "蓝色洋甘菊", "value": 1}, {"source": "干邑白兰地", "target": "龙涎香", "value": 1}, {"source": "橙花", "target": "橡木", "value": 1}, {"source": "橙花", "target": "海藻", "value": 1}, {"source": "橙花", "target": "白松香", "value": 1}, {"source": "橙花", "target": "紫罗兰叶", "value": 1}, {"source": "橙花", "target": "蓝色洋甘菊", "value": 1}, {"source": "橙花", "target": "龙涎香", "value": 1}, {"source": "橡木", "target": "海藻", "value": 1}, {"source": "橡木", "target": "白松香", "value": 1}, {"source": "橡木", "target": "紫罗兰叶", "value": 1}, {"source": "橡木", "target": "蓝色洋甘菊", "value": 1}, {"source": "橡木", "target": "龙涎香", "value": 1}, {"source": "海藻", "target": "白松香", "value": 1}, {"source": "海藻", "target": "紫罗兰叶", "value": 1}, {"source": "海藻", "target": "蓝色洋甘菊", "value": 1}, {"source": "海藻", "target": "龙涎香", "value": 1}, {"source": "白松香", "target": "紫罗兰叶", "value": 1}, {"source": "白松香", "target": "蓝色洋甘菊", "value": 1}, {"source": "白松香", "target": "龙涎香", "value": 1}, {"source": "紫罗兰叶", "target": "蓝色洋甘菊", "value": 1}, {"source": "紫罗兰叶", "target": "龙涎香", "value": 1}, {"source": "蓝色洋甘菊", "target": "龙涎香", "value": 1}, {"source": "乳香", "target": "冷杉香脂", "value": 1}, {"source": "乳香", "target": "小豆蔻", "value": 1}, {"source": "乳香", "target": "粉红胡椒", "value": 1}, {"source": "乳香", "target": "肉豆蔻", "value": 1}, {"source": "乳香", "target": "胡萝卜籽", "value": 1}, {"source": "乳香", "target": "苔藓", "value": 1}, {"source": "乳香", "target": "雪松", "value": 1}, {"source": "冷杉香脂", "target": "小豆蔻", "value": 1}, {"source": "冷杉香脂", "target": "粉红胡椒", "value": 1}, {"source": "冷杉香脂", "target": "肉豆蔻", "value": 1}, {"source": "冷杉香脂", "target": "胡萝卜籽", "value": 1}, {"source": "冷杉香脂", "target": "苔藓", "value": 1}, {"source": "冷杉香脂", "target": "雪松", "value": 1}, {"source": "小豆蔻", "target": "粉红胡椒", "value": 1}, {"source": "小豆蔻", "target": "肉豆蔻", "value": 1}, {"source": "小豆蔻", "target": "胡萝卜籽", "value": 1}, {"source": "小豆蔻", "target": "苔藓", "value": 1}, {"source": "小豆蔻", "target": "雪松", "value": 1}, {"source": "粉红胡椒", "target": "肉豆蔻", "value": 1}, {"source": "粉红胡椒", "target": "胡萝卜籽", "value": 1}, {"source": "粉红胡椒", "target": "苔藓", "value": 1}, {"source": "粉红胡椒", "target": "雪松", "value": 2}, {"source": "肉豆蔻", "target": "胡萝卜籽", "value": 1}, {"source": "肉豆蔻", "target": "苔藓", "value": 1}, {"source": "肉豆蔻", "target": "雪松", "value": 1}, {"source": "胡萝卜籽", "target": "苔藓", "value": 1}, {"source": "胡萝卜籽", "target": "雪松", "value": 1}, {"source": "苔藓", "target": "雪松", "value": 1}, {"source": "大米", "target": "生姜", "value": 1}, {"source": "大米", "target": "茉莉", "value": 1}, {"source": "大米", "target": "茶叶", "value": 1}, {"source": "大米", "target": "薄荷", "value": 1}, {"source": "大米", "target": "香柠檬", "value": 1}, {"source": "大米", "target": "香根草", "value": 1}, {"source": "生姜", "target": "茉莉", "value": 2}, {"source": "生姜", "target": "茶叶", "value": 1}, {"source": "生姜", "target": "薄荷", "value": 1}, {"source": "生姜", "target": "香柠檬", "value": 1}, {"source": "生姜", "target": "香根草", "value": 1}, {"source": "茉莉", "target": "茶叶", "value": 1}, {"source": "茉莉", "target": "薄荷", "value": 1}, {"source": "茉莉", "target": "香柠檬", "value": 2}, {"source": "茉莉", "target": "香根草", "value": 1}, {"source": "茶叶", "target": "薄荷", "value": 1}, {"source": "茶叶", "target": "香柠檬", "value": 1}, {"source": "茶叶", "target": "香根草", "value": 1}, {"source": "丁香", "target": "柠檬", "value": 1}, {"source": "丁香", "target": "桃花心木", "value": 1}, {"source": "丁香", "target": "生姜", "value": 1}, {"source": "丁香", "target": "粉红胡椒", "value": 1}, {"source": "丁香", "target": "绿薄荷", "value": 1}, {"source": "丁香", "target": "苹果", "value": 1}, {"source": "丁香", "target": "茉莉", "value": 1}, {"source": "丁香", "target": "雪松", "value": 1}, {"source": "丁香", "target": "香草", "value": 1}, {"source": "柠檬", "target": "桃花心木", "value": 1}, {"source": "柠檬", "target": "生姜", "value": 1}, {"source": "柠檬", "target": "粉红胡椒", "value": 1}, {"source": "柠檬", "target": "绿薄荷", "value": 1}, {"source": "柠檬", "target": "苹果", "value": 1}, {"source": "柠檬", "target": "茉莉", "value": 2}, {"source": "柠檬", "target": "雪松", "value": 1}, {"source": "柠檬", "target": "香草", "value": 1}, {"source": "桃花心木", "target": "生姜", "value": 1}, {"source": "桃花心木", "target": "粉红胡椒", "value": 1}, {"source": "桃花心木", "target": "绿薄荷", "value": 1}, {"source": "桃花心木", "target": "苹果", "value": 1}, {"source": "桃花心木", "target": "茉莉", "value": 1}, {"source": "桃花心木", "target": "雪松", "value": 1}, {"source": "桃花心木", "target": "香草", "value": 1}, {"source": "生姜", "target": "粉红胡椒", "value": 1}, {"source": "生姜", "target": "绿薄荷", "value": 1}, {"source": "生姜", "target": "苹果", "value": 1}, {"source": "生姜", "target": "雪松", "value": 1}, {"source": "生姜", "target": "香草", "value": 1}, {"source": "粉红胡椒", "target": "绿薄荷", "value": 1}, {"source": "粉红胡椒", "target": "苹果", "value": 1}, {"source": "粉红胡椒", "target": "茉莉", "value": 1}, {"source": "粉红胡椒", "target": "香草", "value": 1}, {"source": "绿薄荷", "target": "苹果", "value": 1}, {"source": "绿薄荷", "target": "茉莉", "value": 1}, {"source": "绿薄荷", "target": "雪松", "value": 1}, {"source": "绿薄荷", "target": "香草", "value": 1}, {"source": "苹果", "target": "茉莉", "value": 1}, {"source": "苹果", "target": "雪松", "value": 1}, {"source": "苹果", "target": "香草", "value": 1}, {"source": "茉莉", "target": "雪松", "value": 1}, {"source": "雪松", "target": "香草", "value": 1}, {"source": "干草", "target": "月桂叶", "value": 1}, {"source": "干草", "target": "柠檬", "value": 1}, {"source": "干草", "target": "椴树花", "value": 1}, {"source": "干草", "target": "洋槐", "value": 1}, {"source": "干草", "target": "玫瑰", "value": 1}, {"source": "干草", "target": "苦橙叶", "value": 1}, {"source": "干草", "target": "茉莉", "value": 1}, {"source": "干草", "target": "菩提花", "value": 1}, {"source": "干草", "target": "铃兰", "value": 1}, {"source": "干草", "target": "香柠檬", "value": 1}, {"source": "干草", "target": "马鞭草", "value": 1}, {"source": "干草", "target": "龙蒿", "value": 1}, {"source": "月桂叶", "target": "柠檬", "value": 1}, {"source": "月桂叶", "target": "椴树花", "value": 1}, {"source": "月桂叶", "target": "洋槐", "value": 1}, {"source": "月桂叶", "target": "玫瑰", "value": 1}, {"source": "月桂叶", "target": "苦橙叶", "value": 1}, {"source": "月桂叶", "target": "茉莉", "value": 1}, {"source": "月桂叶", "target": "菩提花", "value": 1}, {"source": "月桂叶", "target": "铃兰", "value": 1}, {"source": "月桂叶", "target": "香柠檬", "value": 1}, {"source": "月桂叶", "target": "马鞭草", "value": 1}, {"source": "月桂叶", "target": "龙蒿", "value": 1}, {"source": "柠檬", "target": "椴树花", "value": 1}, {"source": "柠檬", "target": "洋槐", "value": 1}, {"source": "柠檬", "target": "玫瑰", "value": 1}, {"source": "柠檬", "target": "苦橙叶", "value": 1}, {"source": "柠檬", "target": "菩提花", "value": 1}, {"source": "柠檬", "target": "铃兰", "value": 1}, {"source": "柠檬", "target": "香柠檬", "value": 1}, {"source": "柠檬", "target": "马鞭草", "value": 1}, {"source": "柠檬", "target": "龙蒿", "value": 1}, {"source": "椴树花", "target": "洋槐", "value": 1}, {"source": "椴树花", "target": "玫瑰", "value": 1}, {"source": "椴树花", "target": "苦橙叶", "value": 1}, {"source": "椴树花", "target": "茉莉", "value": 1}, {"source": "椴树花", "target": "菩提花", "value": 1}, {"source": "椴树花", "target": "铃兰", "value": 1}, {"source": "椴树花", "target": "香柠檬", "value": 1}, {"source": "椴树花", "target": "马鞭草", "value": 1}, {"source": "椴树花", "target": "龙蒿", "value": 1}, {"source": "洋槐", "target": "玫瑰", "value": 1}, {"source": "洋槐", "target": "苦橙叶", "value": 1}, {"source": "洋槐", "target": "茉莉", "value": 1}, {"source": "洋槐", "target": "菩提花", "value": 1}, {"source": "洋槐", "target": "铃兰", "value": 1}, {"source": "洋槐", "target": "香柠檬", "value": 1}, {"source": "洋槐", "target": "马鞭草", "value": 1}, {"source": "洋槐", "target": "龙蒿", "value": 1}, {"source": "玫瑰", "target": "苦橙叶", "value": 1}, {"source": "玫瑰", "target": "茉莉", "value": 1}, {"source": "玫瑰", "target": "菩提花", "value": 1}, {"source": "玫瑰", "target": "铃兰", "value": 1}, {"source": "玫瑰", "target": "香柠檬", "value": 1}, {"source": "玫瑰", "target": "马鞭草", "value": 1}, {"source": "玫瑰", "target": "龙蒿", "value": 1}, {"source": "苦橙叶", "target": "茉莉", "value": 1}, {"source": "苦橙叶", "target": "菩提花", "value": 1}, {"source": "苦橙叶", "target": "铃兰", "value": 1}, {"source": "苦橙叶", "target": "马鞭草", "value": 1}, {"source": "苦橙叶", "target": "龙蒿", "value": 1}, {"source": "茉莉", "target": "菩提花", "value": 1}, {"source": "茉莉", "target": "铃兰", "value": 1}, {"source": "茉莉", "target": "马鞭草", "value": 1}, {"source": "茉莉", "target": "龙蒿", "value": 1}, {"source": "菩提花", "target": "铃兰", "value": 1}, {"source": "菩提花", "target": "香柠檬", "value": 1}, {"source": "菩提花", "target": "马鞭草", "value": 1}, {"source": "菩提花", "target": "龙蒿", "value": 1}, {"source": "铃兰", "target": "香柠檬", "value": 1}, {"source": "铃兰", "target": "马鞭草", "value": 1}, {"source": "铃兰", "target": "龙蒿", "value": 1}, {"source": "香柠檬", "target": "马鞭草", "value": 1}, {"source": "香柠檬", "target": "龙蒿", "value": 1}, {"source": "马鞭草", "target": "龙蒿", "value": 1}, {"source": "小豆蔻", "target": "柏树", "value": 1}, {"source": "小豆蔻", "target": "树莓", "value": 1}, {"source": "小豆蔻", "target": "梧桐", "value": 1}, {"source": "小豆蔻", "target": "老鹳草", "value": 1}, {"source": "小豆蔻", "target": "胡椒", "value": 1}, {"source": "小豆蔻", "target": "芫荽", "value": 1}, {"source": "小豆蔻", "target": "青草", "value": 1}, {"source": "小豆蔻", "target": "香根草", "value": 1}, {"source": "柏树", "target": "树莓", "value": 1}, {"source": "柏树", "target": "梧桐", "value": 1}, {"source": "柏树", "target": "老鹳草", "value": 1}, {"source": "柏树", "target": "胡椒", "value": 1}, {"source": "柏树", "target": "芫荽", "value": 1}, {"source": "柏树", "target": "青草", "value": 1}, {"source": "柏树", "target": "香根草", "value": 1}, {"source": "树莓", "target": "梧桐", "value": 1}, {"source": "树莓", "target": "老鹳草", "value": 1}, {"source": "树莓", "target": "胡椒", "value": 1}, {"source": "树莓", "target": "芫荽", "value": 1}, {"source": "树莓", "target": "青草", "value": 1}, {"source": "树莓", "target": "香根草", "value": 1}, {"source": "梧桐", "target": "老鹳草", "value": 1}, {"source": "梧桐", "target": "胡椒", "value": 1}, {"source": "梧桐", "target": "芫荽", "value": 1}, {"source": "梧桐", "target": "青草", "value": 1}, {"source": "梧桐", "target": "香根草", "value": 1}, {"source": "老鹳草", "target": "胡椒", "value": 1}, {"source": "老鹳草", "target": "芫荽", "value": 1}, {"source": "老鹳草", "target": "青草", "value": 1}, {"source": "老鹳草", "target": "香根草", "value": 1}, {"source": "胡椒", "target": "芫荽", "value": 1}, {"source": "胡椒", "target": "青草", "value": 1}, {"source": "胡椒", "target": "香根草", "value": 1}, {"source": "芫荽", "target": "青草", "value": 1}, {"source": "芫荽", "target": "香根草", "value": 1}, {"source": "青草", "target": "香根草", "value": 1}, {"source": "愈创木", "target": "檀香木", "value": 1}, {"source": "愈创木", "target": "米香", "value": 1}, {"source": "愈创木", "target": "芋头", "value": 1}, {"source": "愈创木", "target": "豆乳", "value": 1}, {"source": "愈创木", "target": "香根草", "value": 2}, {"source": "愈创木", "target": "鸢尾", "value": 1}, {"source": "愈创木", "target": "麝香", "value": 1}, {"source": "檀香木", "target": "米香", "value": 1}, {"source": "檀香木", "target": "芋头", "value": 1}, {"source": "檀香木", "target": "豆乳", "value": 1}, {"source": "檀香木", "target": "鸢尾", "value": 1}, {"source": "米香", "target": "芋头", "value": 1}, {"source": "米香", "target": "豆乳", "value": 1}, {"source": "米香", "target": "香根草", "value": 1}, {"source": "米香", "target": "鸢尾", "value": 1}, {"source": "米香", "target": "麝香", "value": 1}, {"source": "芋头", "target": "豆乳", "value": 1}, {"source": "芋头", "target": "香根草", "value": 1}, {"source": "芋头", "target": "鸢尾", "value": 1}, {"source": "芋头", "target": "麝香", "value": 1}, {"source": "豆乳", "target": "香根草", "value": 1}, {"source": "豆乳", "target": "鸢尾", "value": 1}, {"source": "豆乳", "target": "麝香", "value": 1}, {"source": "香根草", "target": "鸢尾", "value": 1}, {"source": "鸢尾", "target": "麝香", "value": 1}, {"source": "不凋花", "target": "乌龙茶", "value": 1}, {"source": "不凋花", "target": "兰花", "value": 1}, {"source": "不凋花", "target": "愈创木", "value": 1}, {"source": "不凋花", "target": "莎草", "value": 1}, {"source": "不凋花", "target": "辛香料", "value": 1}, {"source": "不凋花", "target": "香柠檬", "value": 1}, {"source": "不凋花", "target": "香根草", "value": 1}, {"source": "乌龙茶", "target": "兰花", "value": 1}, {"source": "乌龙茶", "target": "愈创木", "value": 1}, {"source": "乌龙茶", "target": "莎草", "value": 1}, {"source": "乌龙茶", "target": "辛香料", "value": 1}, {"source": "乌龙茶", "target": "香柠檬", "value": 1}, {"source": "乌龙茶", "target": "香根草", "value": 1}, {"source": "兰花", "target": "愈创木", "value": 1}, {"source": "兰花", "target": "莎草", "value": 1}, {"source": "兰花", "target": "辛香料", "value": 1}, {"source": "兰花", "target": "香柠檬", "value": 1}, {"source": "兰花", "target": "香根草", "value": 1}, {"source": "愈创木", "target": "莎草", "value": 1}, {"source": "愈创木", "target": "辛香料", "value": 1}, {"source": "愈创木", "target": "香柠檬", "value": 1}, {"source": "莎草", "target": "辛香料", "value": 1}, {"source": "莎草", "target": "香柠檬", "value": 1}, {"source": "莎草", "target": "香根草", "value": 1}, {"source": "辛香料", "target": "香柠檬", "value": 1}, {"source": "辛香料", "target": "香根草", "value": 1}, {"source": "佛手柑", "target": "天芥菜", "value": 1}, {"source": "佛手柑", "target": "姜", "value": 1}, {"source": "佛手柑", "target": "橙子", "value": 1}, {"source": "佛手柑", "target": "焦糖", "value": 1}, {"source": "佛手柑", "target": "玫瑰", "value": 1}, {"source": "佛手柑", "target": "肉桂", "value": 1}, {"source": "佛手柑", "target": "苹果", "value": 1}, {"source": "佛手柑", "target": "零陵香豆", "value": 1}, {"source": "天芥菜", "target": "姜", "value": 1}, {"source": "天芥菜", "target": "橙子", "value": 1}, {"source": "天芥菜", "target": "焦糖", "value": 1}, {"source": "天芥菜", "target": "玫瑰", "value": 1}, {"source": "天芥菜", "target": "肉桂", "value": 1}, {"source": "天芥菜", "target": "苹果", "value": 1}, {"source": "天芥菜", "target": "零陵香豆", "value": 1}, {"source": "姜", "target": "橙子", "value": 1}, {"source": "姜", "target": "焦糖", "value": 1}, {"source": "姜", "target": "玫瑰", "value": 1}, {"source": "姜", "target": "肉桂", "value": 1}, {"source": "姜", "target": "苹果", "value": 1}, {"source": "姜", "target": "零陵香豆", "value": 1}, {"source": "橙子", "target": "焦糖", "value": 1}, {"source": "橙子", "target": "玫瑰", "value": 1}, {"source": "橙子", "target": "肉桂", "value": 1}, {"source": "橙子", "target": "苹果", "value": 1}, {"source": "橙子", "target": "零陵香豆", "value": 1}, {"source": "焦糖", "target": "玫瑰", "value": 1}, {"source": "焦糖", "target": "肉桂", "value": 1}, {"source": "焦糖", "target": "苹果", "value": 1}, {"source": "焦糖", "target": "零陵香豆", "value": 1}, {"source": "玫瑰", "target": "肉桂", "value": 1}, {"source": "玫瑰", "target": "苹果", "value": 1}, {"source": "玫瑰", "target": "零陵香豆", "value": 1}, {"source": "肉桂", "target": "苹果", "value": 1}, {"source": "肉桂", "target": "零陵香豆", "value": 1}, {"source": "苹果", "target": "零陵香豆", "value": 1}]};
+
+
+    window.renderGraph = function(newData) {
+        if(newData) data = newData;
+        d3.select("#container").html("");
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    const svg = d3.select("#container").append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .call(d3.zoom().on("zoom", (event) => {
+            g.attr("transform", event.transform);
+        }))
+        .append("g");
+    
+    const g = svg.append("g");
+
+    // Brand Palette: Orange, Earthy Tones, Soft Pastels
+    const brandPalette = [
+        "#fc4c02", // Brand Orange
+        "#8c7b75", // Warm Grey
+        "#d4af37", // Gold
+        "#a65e2e", // Leather Brown
+        "#5d4037", // Dark Brown
+        "#78909c", // Muted Blue
+        "#8d6e63", // Cocoa
+        "#bcaaa4", // Taupe
+        "#ffcc80", // Soft Orange
+        "#e0e0e0"  // Light Grey
+    ];
+    
+    // Ingredient descriptions
+    const descriptions = {
+        "香根草": "来自根部的泥土、木质和烟熏气息。",
+        "小豆蔻": "辛辣、芳香且略带树脂味的香调。",
+        "茉莉": "浓郁、华丽且甜美的花香。",
+        "香柠檬": "清新、爽口的柑橘香，带有复杂的花香边缘。",
+        "檀香木": "奶油般顺滑、奶香和柔软的木质香气。",
+        "乳香": "树脂、香脂和略带辛辣的焚香调。",
+        "橡木": "深沉、木质和泥土的特征。",
+        "广藿香": "泥土、木质，略带甜味或薄荷味。",
+        "香草": "甜美、美食调和令人舒适的香气。",
+        "零陵香豆": "甜美、辛辣，带有杏仁和烟草的细微差别。",
+        "薄荷": "清新、绿色和清凉的芳香调。",
+        "苦橙叶": "绿色、木质且略带花香的柑橘枝叶气息。",
+        "麝香": "柔软、粉感和类似肌肤的动物气息。",
+        "粉红胡椒": "清新、辛辣，略带花香/玫瑰香。",
+        "雪松": "干燥、木质，类似铅笔屑的香气。",
+        "生姜": "辛辣、锐利且清新的热情。",
+        "柠檬": "明亮、酸爽且令人振奋的柑橘调。",
+        "苹果": "清新、果香和脆爽的气息。",
+        "玫瑰": "经典、浪漫且清新的花香调。",
+        "愈创木": "烟熏、木质和皮革味的异国木材。",
+        "苦橙": "苦涩、清新且芳香的柑橘。",
+        "罗勒": "草本、辛辣和绿色的芳香。",
+        "常春藤": "绿色、清新且略带水生感。",
+        "橡木苔": "泥土、苔藓和森林地面的气息。",
+        "威士忌": "酒香、木质和泥煤的香气。",
+        "烟雾": "烟熏、焦灼和神秘的调协。",
+        "麦芽": "甜美、谷物和烘烤的细微差别。",
+        "康乃馨": "辛辣、花香且类似丁香。",
+        "黄葵": "麝香、花香且略带梨味。",
+        "醛": "皂感、蜡质和柑橘味的合成香调。",
+        "尤加利": "清新、樟脑味和清凉感。",
+        "杜松": "松树、树脂和清新感。",
+        "迷迭香": "草本、木质和樟脑味。",
+        "薰衣草": "花香、草本和干净的芳香。",
+        "劳丹脂": "树脂、类似琥珀和皮革味。",
+        "沉香(乌木)": "浓郁、霉味、木质和坚果味。",
+        "琥珀": "温暖、甜美和树脂的调协。",
+        "海藻": "咸味、海洋和碘味。",
+        "干邑白兰地": "果香、酒香和木质感。",
+        "蓝色洋甘菊": "草本、甜美且类似苹果味。",
+        "橙花": "清新、花香和柑橘味的花朵。",
+        "紫罗兰叶": "绿色、金属感和类似黄瓜味。",
+        "白松香": "绿色、苦涩且带有树脂味。",
+        "龙涎香": "海洋、咸味和麝香感。",
+        "肉豆蔻": "辛辣、甜美且温暖。",
+        "胡萝卜籽": "泥土、木质且类似鸢尾花。",
+        "苔藓": "绿色、潮湿和泥土气息。",
+        "冷杉香脂": "松树、树脂和甜美感。",
+        "茶叶": "芳香、绿色和草本感。",
+        "大米": "淀粉味、坚果味和柔软感。",
+        "绿薄荷": "清新、甜美且带有薄荷味。",
+        "丁香": "辛辣、温暖且富含丁香酚。",
+        "桃花心木": "木质、干燥且坚实。",
+        "菩提花": "蜜糖味、花香和柑橘味。",
+        "龙蒿": "类似茴香、绿色和草本感。",
+        "椴树花": "甜美、花香和类似蜂蜜。",
+        "铃兰": "清新、绿色和皂感花香。",
+        "月桂叶": "草本、辛辣和芳香。",
+        "洋槐": "甜美、蜜糖味和花香。",
+        "干草": "甜美、干燥和草味。",
+        "马鞭草": "类似柠檬、清新且草本。",
+        "芫荽": "辛辣、木质且略带皂感。",
+        "青草": "清新、绿色和割草的气息。",
+        "树莓": "果香、甜美且浓郁。",
+        "梧桐": "木质、干燥且带有泥土味。",
+        "胡椒": "辛辣、热烈且锐利。",
+        "老鹳草": "类似玫瑰、绿色且带有薄荷味。",
+        "柏树": "木质、树脂和清新感。",
+        "豆乳": "奶油味、坚果味和柔软感。",
+        "米香": "粉感、淀粉味和舒适感。",
+        "芋头": "甜美、淀粉味和泥土味。",
+        "鸢尾": "粉感、花香和木质感。",
+        "莎草": "泥土、木质和烟熏味。",
+        "辛香料": "温暖、热烈和芳香的混合。",
+        "乌龙茶": "烘焙、花香和茶香。",
+        "兰花": "异国情调、花香和粉感。",
+        "不凋花": "草本、类似咖喱和辛辣味。",
+        "佛手柑": "柑橘、清新且类似伯爵茶。",
+        "橙子": "甜美、多汁且带有柑橘味。",
+        "肉桂": "辛辣、温暖且甜美的树皮味。",
+        "姜": "辛辣、温暖且锐利。",
+        "天芥菜": "粉感、类似杏仁和香草味。",
+        "焦糖": "甜美、焦糖和美食调。"
+    };
+
+    const color = d3.scaleOrdinal(brandPalette);
+
+    // Scale for node radius based on count
+    const radiusScale = d3.scaleSqrt()
+        .domain([1, d3.max(data.nodes, d => d.count)])
+        .range([8, 35]); 
+
+    // Scale for link width based on value
+    const strokeWidthScale = d3.scaleLinear()
+        .domain([1, d3.max(data.links, d => d.value)])
+        .range([0.5, 3]);
+
+    const simulation = d3.forceSimulation(data.nodes)
+        .force("link", d3.forceLink(data.links).id(d => d.id).distance(150))
+        .force("charge", d3.forceManyBody().strength(-300))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collide", d3.forceCollide().radius(d => radiusScale(d.count) + 5).iterations(2));
+
+    // Links: Thinner, lighter
+    const link = g.append("g")
+        .attr("stroke", "#ccc") 
+        .attr("stroke-opacity", 0.6)
+        .selectAll("line")
+        .data(data.links)
+        .join("line")
+        .attr("stroke-width", d => strokeWidthScale(d.value));
+
+    // Nodes wrapper
+    const node = g.append("g")
+        .selectAll("g")
+        .data(data.nodes)
+        .join("g")
+        .call(d3.drag()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended));
+    
+    // Node circles: Elegant stroke
+    node.append("circle")
+        .attr("r", d => radiusScale(d.count))
+        .attr("fill", d => color(d.group))
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 2)
+        .attr("cursor", "pointer")
+        .style("filter", "drop-shadow(0px 2px 3px rgba(0,0,0,0.1))") // Subtle shadow
+        .on("mouseover", function() { 
+            d3.select(this)
+                .attr("stroke", "#fc4c02")
+                .attr("stroke-width", 3); 
+        })
+        .on("mouseout", function() { 
+            d3.select(this)
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 2); 
+        });
+
+    // Labels: Serif, clean
+    const labels = node.append("text")
+        .attr("dx", d => radiusScale(d.count) + 6)
+        .attr("dy", ".35em")
+        .text(d => d.id)
+        .style("font-family", "'Georgia', serif")
+        .style("font-size", "12px")
+        .style("fill", "#333")
+        .style("pointer-events", "none")
+        .style("text-shadow", "2px 2px 0 #fbfaf5, -1px -1px 0 #fbfaf5, 1px -1px 0 #fbfaf5, -1px 1px 0 #fbfaf5, 1px 1px 0 #fbfaf5");
+
+    // Simplified scent mapping for generating composite descriptions
+    window.scentProfiles = {
+        "木质": ["香根草", "檀香木", "橡木", "广藿香", "雪松", "愈创木", "沉香(乌木)", "胡萝卜籽", "苔藓", "冷杉香脂", "桃花心木", "梧桐", "柏树", "莎草"],
+        "花香": ["茉莉", "香柠檬", "玫瑰", "康乃馨", "黄葵", "薰衣草", "橙花", "紫罗兰叶", "菩提花", "椴树花", "铃兰", "洋槐", "老鹳草", "鸢尾", "兰花", "天芥菜"],
+        "辛辣": ["小豆蔻", "乳香", "粉红胡椒", "生姜", "肉豆蔻", "丁香", "芫荽", "胡椒", "辛香料", "肉桂", "姜", "不凋花"],
+        "柑橘": ["香柠檬", "苦橙叶", "柠檬", "苦橙", "醛", "马鞭草", "佛手柑", "橙子"],
+        "美食": ["香草", "零陵香豆", "威士忌", "麦芽", "干邑白兰地", "大米", "豆乳", "米香", "芋头", "焦糖", "树莓", "苹果"],
+        "草本": ["薄荷", "罗勒", "常春藤", "橡木苔", "尤加利", "迷迭香", "蓝色洋甘菊", "茶叶", "绿薄荷", "龙蒿", "月桂叶", "干草", "青草"],
+        "树脂": ["乳香", "劳丹脂", "琥珀", "白松香", "安息香"],
+        "动物": ["麝香", "龙涎香", "海藻"]
+    };
+
+    function getScentProfile(ingredient) {
+        for (const [profile, ingredients] of Object.entries(scentProfiles)) {
+            if (ingredients.includes(ingredient)) return profile;
+        }
+        return "独特";
+    }
+
+    function generatePairingDescription(source, target) {
+        const p1 = getScentProfile(source);
+        const p2 = getScentProfile(target);
+        
+        if (p1 === p2) return `两种${p1}调的强化组合，带来深邃而丰富的层次感。`;
+        
+        const pair = [p1, p2].sort().join("-");
+        const combinations = {
+            "木质-花香": "深沉木质与柔美花香的经典平衡，优雅而持久。",
+            "木质-辛辣": "温暖辛辣点燃干燥木质，营造出充满活力的男性气息。",
+            "柑橘-木质": "清新柑橘照亮沉稳木质，带来阳光穿透森林的感觉。",
+            "花香-辛辣": "热烈辛辣与甜美花香的碰撞，充满诱惑与张力。",
+            "柑橘-花香": "明亮柑橘衬托精致花香，如同清晨露水般清新。",
+            "美食-木质": "温暖美食调包裹坚实木质，带来舒适而安心的氛围。",
+            "草本-木质": "自然草本与大地木质的结合，仿佛置身雨后森林。",
+            "动物-花香": "感性麝香与馥郁花香的交织，散发迷人而原始的魅力。",
+            "柑橘-辛辣": "清爽与热辣的对比，带来充满活力的能量感。",
+            "树脂-木质": "古老树脂与深沉木质的融合，营造神圣而静谧的氛围。",
+            "美食-花香": "甜蜜诱惑与花香的结合，带来令人垂涎的浪漫气息。",
+            "草本-柑橘": "芳香草本与酸爽柑橘，带来极致的清新与洁净感。"
+        };
+        
+        return combinations[pair] || `将${source}的特质与${target}的香气融合，创造出一种${p1}与${p2}交织的独特复合香韵。`;
+    }
+
+    function generatePoeticTitle(dominantProfile) {
+        const poems = {
+            "木质": ["深林人不知，明月来相照", "泉声咽危石，日色冷青松", "松风吹解带，山月照弹琴", "清泉石上流，明月松间照"],
+            "花香": ["云想衣裳花想容，春风拂槛露华浓", "唯有牡丹真国色，花开时节动京城", "人面不知何处去，桃花依旧笑春风", "留连戏蝶时时舞，自在娇莺恰恰啼"],
+            "辛辣": ["葡萄美酒夜光杯，欲饮琵琶马上催", "东风夜放花千树，更吹落，星如雨", "金樽清酒斗十千，玉盘珍羞直万钱"],
+            "柑橘": ["一年好景君须记，最是橙黄橘绿时", "新裂齐纨素，鲜洁如霜雪", "绿阴不减来时路，添得黄鹂四五声"],
+            "美食": ["日啖荔枝三百颗，不辞长作岭南人", "兰陵美酒郁金香，玉碗盛来琥珀光", "纤手搓来玉色匀，碧油煎出嫩黄深"],
+            "草本": ["草色遥看近却无，最是一年春好处", "离离原上草，一岁一枯荣", "乱花渐欲迷人眼，浅草才能没马蹄"],
+            "树脂": ["香雾云鬟湿，清辉玉臂寒", "沧海月明珠有泪，蓝田日暖玉生烟"],
+            "动物": ["身无彩凤双飞翼，心有灵犀一点通", "春蚕到死丝方尽，蜡炬成灰泪始干"],
+            "多元": ["疏影横斜水清浅，暗香浮动月黄昏", "众里寻他千百度，蓦然回首，那人却在，灯火阑珊处"]
+        };
+
+        const list = poems[dominantProfile] || poems["多元"];
+        const randomIndex = Math.floor(Math.random() * list.length);
+        return list[randomIndex];
+    }
+
+    // Tooltip logic
+    const tooltip = d3.select(".tooltip");
+
+    // Data Analysis Logic
+    function analyzeNetwork() {
+        // 1. Most popular individual scents (by count)
+        const topNodes = [...data.nodes]
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+
+        // 2. Most popular combinations (by link value)
+        const topLinks = [...data.links]
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5);
+
+        // 3. Dominant Scent Families
+        const profileCounts = {};
+        let totalCount = 0;
+        data.nodes.forEach(node => {
+            const profile = getScentProfile(node.id);
+            if (profile !== "独特") {
+                profileCounts[profile] = (profileCounts[profile] || 0) + node.count;
+                totalCount += node.count;
+            }
+        });
+        const topProfiles = Object.entries(profileCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+
+        // Generate HTML
+        let html = "";
+
+        // Summary
+        const dominantProfile = topProfiles[0] ? topProfiles[0][0] : "多元";
+        
+        // Generate and set Poetic Title
+        const poeticTitle = generatePoeticTitle(dominantProfile);
+        document.getElementById("poeticTitle").innerText = poeticTitle;
+
+        html += `<div class="summary-text">这是一个以<strong>${dominantProfile}调</strong>为主的个人气味收藏。收藏中包含了 ${data.nodes.length} 种独特香材，通过 ${data.links.length} 种搭配构建出丰富的嗅觉网络。</div>`;
+
+        // Top Scents
+        html += `<h3>最受欢迎的单气味</h3>`;
+        html += `<ul class="analysis-list">`;
+        topNodes.forEach(node => {
+            html += `<li><span>${node.id}</span> <span class="highlight-number">${node.count} 次</span></li>`;
+        });
+        html += `</ul>`;
+
+        // Top Combinations
+        html += `<h3>最经典的搭配</h3>`;
+        html += `<ul class="analysis-list">`;
+        topLinks.forEach(link => {
+            html += `<li><span>${link.source.id} & ${link.target.id}</span> <span class="highlight-number">${link.value} 次</span></li>`;
+        });
+        html += `</ul>`;
+
+        // Scent Family Distribution
+        html += `<h3>气味家族偏好</h3>`;
+        html += `<ul class="analysis-list">`;
+        topProfiles.forEach(([profile, count]) => {
+            const percentage = Math.round((count / totalCount) * 100);
+            html += `<li><span>${profile}调</span> <span class="highlight-number">${percentage}%</span></li>`;
+        });
+        html += `</ul>`;
+
+        document.getElementById("analysisContent").innerHTML = html;
+    }
+
+    // Initialize
+    analyzeNetwork();
+    
+    node.on("mouseover", function(event, d) {
+        tooltip.transition().duration(200).style("opacity", 1);
+        
+        const description = descriptions[d.id] || "香水调色板中的独特成分。";
+        
+        tooltip.html("<strong>" + d.id + "</strong><br/>" + description + "<br/><br/><span style='font-size:12px;color:#666'>出现次数: " + d.count + "</span>")
+            .style("left", (event.pageX + 20) + "px")
+            .style("top", (event.pageY - 20) + "px");
+    }).on("mouseout", function(d) {
+        tooltip.transition().duration(500).style("opacity", 0);
+    });
+    
+    link.on("mouseover", function(event, d) {
+        d3.select(this).attr("stroke", "#fc4c02").attr("stroke-opacity", 1);
+        tooltip.transition().duration(200).style("opacity", 1);
+        
+        const pairingDesc = generatePairingDescription(d.source.id, d.target.id);
+        
+        tooltip.html("<strong>搭配: " + d.source.id + " & " + d.target.id + "</strong><br/>" + pairingDesc + "<br/><br/><span style='font-size:12px;color:#666'>共现次数: " + d.value + "</span>")
+            .style("left", (event.pageX + 20) + "px")
+            .style("top", (event.pageY - 20) + "px");
+    }).on("mouseout", function(d) {
+        d3.select(this).attr("stroke", "#ccc").attr("stroke-opacity", 0.6);
+        tooltip.transition().duration(500).style("opacity", 0);
+    });
+
+    simulation.on("tick", () => {
+        link
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+
+        node
+            .attr("transform", d => `translate(${d.x},${d.y})`);
+    });
+
+    function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+    }
+
+    function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+    }
+    
+    // Update Analysis Panel
+    if(typeof analyzeNetwork === 'function') analyzeNetwork();
+
+    } // End renderGraph
+
+    // Initial Render
+    renderGraph();
+</script>
+<script src="app.js"></script>
+</body>
+</html>
