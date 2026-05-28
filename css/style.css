@@ -590,6 +590,52 @@ main {
     color: var(--brand-orange);
     border-bottom: 2px solid var(--brand-orange);
 }
+.auth-forgot {
+    text-align: right;
+    margin-top: 10px;
+    font-size: 13px;
+}
+.auth-forgot span {
+    color: #888;
+    cursor: pointer;
+}
+.auth-forgot span:hover { color: var(--brand-orange); text-decoration: underline; }
+.auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #bbb;
+    font-size: 12px;
+    margin: 18px 0;
+}
+.auth-divider::before, .auth-divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid #eee;
+}
+.auth-divider span { padding: 0 12px; }
+.btn-google {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 11px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    font-size: 14px;
+    color: #444;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--brand-font-sans);
+}
+.btn-google:hover { border-color: #bbb; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.user-box { cursor: pointer; display: flex; align-items: center; }
+.user-avatar-img {
+    width: 32px; height: 32px; border-radius: 50%;
+    object-fit: cover; border: 1px solid #eee;
+}
 
 /* Toast Notifications */
 #toast-container {

@@ -2,10 +2,10 @@ export const DB = {
     scentProfiles: {
         "柑橘": ["香柠檬", "柠檬", "苦橙", "葡萄柚", "橘子", "青柠", "橙花油", "柚子", "苦橙叶", "佛手柑", "马鞭草", "醛"],
         "花香": ["茉莉", "玫瑰", "依兰", "铃兰", "晚香玉", "鸢尾", "天竺葵", "薰衣草", "橙花", "紫罗兰", "牡丹", "木兰", "康乃馨", "黄葵", "菩提花", "椴树花", "洋槐", "老鹳草", "兰花", "天芥菜", "鸢尾草"],
-        "木质": ["檀香木", "雪松", "香根草", "广藿香", "沉香(乌木)", "柏树", "愈创木", "松树", "橡木", "杜松", "苔藓", "冷杉香脂", "桃花心木", "梧桐", "莎草", "胡萝卜籽", "不凋花", "喀什米尔木", "榛木"],
+        "木质": ["檀香木", "雪松", "香根草", "广藿香", "沉香(乌木)", "柏树", "愈创木", "松树", "橡木", "杜松", "苔藓", "冷杉香脂", "冷杉", "桃花心木", "梧桐", "莎草", "胡萝卜籽", "不凋花", "喀什米尔木", "榛木"],
         "辛辣": ["粉红胡椒", "黑胡椒", "小豆蔻", "肉桂", "丁香", "生姜", "肉豆蔻", "藏红花", "芫荽", "胡椒", "辛香料", "姜", "月桂叶"],
         "美食": ["香草", "零陵香豆", "焦糖", "巧克力", "蜂蜜", "咖啡", "杏仁", "椰子", "朗姆酒", "威士忌", "麦芽", "干邑白兰地", "大米", "豆乳", "米香", "芋头"],
-        "草本": ["薄荷", "罗勒", "迷迭香", "鼠尾草", "百里香", "茶叶", "烟草", "尤加利", "常春藤", "橡木苔", "蓝色洋甘菊", "绿薄荷", "龙蒿", "干草", "青草", "乌龙茶"],
+        "草本": ["薄荷", "罗勒", "迷迭香", "鼠尾草", "百里香", "茶叶", "烟草", "尤加利", "常春藤", "橡木苔", "蓝色洋甘菊", "绿薄荷", "龙蒿", "干草", "青草", "乌龙茶", "马黛茶"],
         "果香": ["苹果", "桃子", "梨", "黑加仑", "无花果", "树莓", "菠萝", "西瓜", "橙子"],
         "树脂": ["琥珀", "乳香", "没药", "安息香", "劳丹脂", "白松香"],
         "动物": ["麝香", "龙涎香", "海狸香", "皮革", "海藻"],
@@ -74,7 +74,7 @@ export const TRANSLATIONS = {
         card: { overview: "气味概览", top_scents: "灵魂香调 (Top 3)", top_pairs: "经典和弦", generated_by: "基于你收藏的香水成分生成", find_match: "寻找共鸣者", perfumes: "收藏香水", scents: "独特气味", bottles: "瓶", types: "种", explorer: "气味探索者", default_quote: "在气味的迷宫中，你找到了属于自己的线索。" },
         social: { title: "气味相投的伙伴", match_score: "共鸣度", common_likes: "共同喜好", no_overlap: "暂无显著重叠", no_perfume_tip: "请先添加香水以寻找伙伴" },
         modal: { add_perfume: "添加香水", edit_perfume: "编辑香水", perfume_name: "香水名称", brand: "品牌", top_notes: "前调", middle_notes: "中调", base_notes: "后调", select_placeholder: "点击选择...", select_ingredient: "选择成分" },
-        auth: { login_tab: "登录", register_tab: "注册", email: "电子邮箱", password: "密码", confirm_password: "确认密码", username: "用户名", login_btn: "登录", register_btn: "立即注册", logout_confirm: "确定要退出登录吗？" },
+        auth: { login_tab: "登录", register_tab: "注册", email: "电子邮箱", password: "密码", confirm_password: "确认密码", username: "用户名", login_btn: "登录", register_btn: "立即注册", logout_confirm: "确定要退出登录吗？", forgot: "忘记密码？", or: "或", google: "使用 Google 登录" },
         common: { cancel: "取消", save: "保存", done: "完成", all: "全部" },
         toast: { saved: "已保存", updated: "已更新", deleted: "已删除", need_name: "请输入香水名称", need_notes: "请至少选择一种气味成分", parsed: "已解析出成分，默认添加到中调，请自行调整", not_found: "未识别出已知成分，请手动添加或检查拼写", voice_unsupported: "您的浏览器不支持语音识别", voice_listening: "正在聆听...", voice_idle: "点击麦克风开始说话", img_analyzing: "正在识别图片成分...", img_done: "识别完成，已提取成分" }
     },
@@ -85,7 +85,7 @@ export const TRANSLATIONS = {
         card: { overview: "Overview", top_scents: "Soul Notes", top_pairs: "Signature Chords", generated_by: "Generated based on your collection", find_match: "Find Resonance", perfumes: "Perfumes", scents: "Unique Scents", bottles: "bottles", types: "types", explorer: "Scent Explorer", default_quote: "In the labyrinth of scents, you found your thread." },
         social: { title: "Scent Soulmates", match_score: "Resonance", common_likes: "Common Likes", no_overlap: "No significant overlap", no_perfume_tip: "Add perfumes to find partners" },
         modal: { add_perfume: "Add Perfume", edit_perfume: "Edit Perfume", perfume_name: "Perfume Name", brand: "Brand", top_notes: "Top Notes", middle_notes: "Heart Notes", base_notes: "Base Notes", select_placeholder: "Click to select...", select_ingredient: "Select Ingredient" },
-        auth: { login_tab: "Login", register_tab: "Register", email: "Email", password: "Password", confirm_password: "Confirm Password", username: "Username", login_btn: "Login", register_btn: "Register Now", logout_confirm: "Are you sure you want to logout?" },
+        auth: { login_tab: "Login", register_tab: "Register", email: "Email", password: "Password", confirm_password: "Confirm Password", username: "Username", login_btn: "Login", register_btn: "Register Now", logout_confirm: "Are you sure you want to logout?", forgot: "Forgot password?", or: "OR", google: "Sign in with Google" },
         common: { cancel: "Cancel", save: "Save", done: "Done", all: "All" },
         toast: { saved: "Saved", updated: "Updated", deleted: "Deleted", need_name: "Please enter a perfume name", need_notes: "Please select at least one note", parsed: "Notes parsed and added to Heart by default, please adjust", not_found: "No known notes recognized, please add manually or check spelling", voice_unsupported: "Your browser does not support speech recognition", voice_listening: "Listening...", voice_idle: "Tap the mic to start speaking", img_analyzing: "Analyzing image notes...", img_done: "Done, notes extracted" }
     }

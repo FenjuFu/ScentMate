@@ -1,0 +1,36 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ============================================================
+// 把下面替换成你 Firebase 项目「网页应用」的配置
+// 获取路径：Firebase 控制台 → 项目设置 → 你的应用 → SDK 配置
+// 注意：这些值不是机密，本就设计为放在前端；安全性由
+//   1) Firebase 身份验证  2) Firestore 安全规则  共同保障。
+// 需要在控制台开启：Authentication → 登录方式 → 邮箱/密码 + Google；
+// 并在 Authentication → Settings → 授权域名 里加入 localhost 与你的线上域名。
+// ============================================================
+export const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+export const isFirebaseConfigured =
+    !!firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_");
+
+let auth = null;
+let db = null;
+
+if (isFirebaseConfigured) {
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+} else {
+    console.warn("[ScentMate] Firebase 未配置：登录与云同步已禁用，香水数据暂用本地存储。请在 js/firebase-config.js 填入配置。");
+}
+
+export { auth, db };

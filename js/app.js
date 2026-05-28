@@ -1,6 +1,7 @@
 import { DB, ALL_INGREDIENTS, SCENT_TRANSLATIONS, TRANSLATIONS, MOCK_USERS, PROFILE_COLORS } from './data.js';
 import { AuthSystem } from './auth.js';
 import { ScentVisualization } from './viz.js';
+import { loadLocalSync, loadPerfumes, savePerfumes } from './store.js';
 
 const DEFAULT_PERFUMES = [
     { id: 1, name: "蓦岚 青藤", brand: "", notes: { top: ["苦橙", "罗勒"], middle: ["常春藤"], base: ["小豆蔻", "橡木苔"] } },
@@ -15,7 +16,8 @@ const DEFAULT_PERFUMES = [
     { id: 10, name: "One Day Taipei台北", brand: "", notes: { top: ["豆乳", "米香", "芋头"], middle: ["愈创木", "鸢尾"], base: ["麝香", "香根草", "檀香木"] } },
     { id: 11, name: "五朵里 鸭屎香", brand: "", notes: { top: ["香柠檬", "莎草", "辛香料"], middle: ["乌龙茶", "兰花"], base: ["香根草", "愈创木", "不凋花"] } },
     { id: 12, name: "花宫娜天芥菜生姜heliotrope gingembre", brand: "", notes: { top: ["佛手柑", "橙子"], middle: ["玫瑰", "肉桂", "姜", "苹果"], base: ["天芥菜", "零陵香豆", "焦糖"] } },
-    { id: 13, name: "hellenist梦神之臂", brand: "", notes: { top: ["紫罗兰叶", "桃子", "天芥菜"], middle: ["鸢尾草", "紫罗兰", "榛木"], base: ["香草", "零陵香豆", "喀什米尔木"] } }
+    { id: 13, name: "hellenist梦神之臂", brand: "", notes: { top: ["紫罗兰叶", "桃子", "天芥菜"], middle: ["鸢尾草", "紫罗兰", "榛木"], base: ["香草", "零陵香豆", "喀什米尔木"] } },
+    { id: 14, name: "费雷罗选集", brand: "", notes: { top: ["薄荷", "天竺葵", "苦橙", "柠檬", "香柠檬"], middle: ["广藿香", "马黛茶", "胡萝卜籽", "肉豆蔻"], base: ["冷杉", "零陵香豆", "愈创木", "安息香"] } }
 ];
 
 class ScentMateApp {
@@ -23,27 +25,39 @@ class ScentMateApp {
         this.state = {
             currentLang: localStorage.getItem('scent_lang') || 'zh',
             currentView: 'home',
-            myPerfumes: this.loadPerfumes(),
+            myPerfumes: loadLocalSync(DEFAULT_PERFUMES),
             tempNotes: { top: new Set(), middle: new Set(), base: new Set() },
             currentPickingSection: null,
             editingId: null,
             searchQuery: ''
         };
+        this.currentUser = null;
 
         this.auth = new AuthSystem(this);
         this.viz = new ScentVisualization(this);
     }
 
-    loadPerfumes() {
+    // Called by AuthSystem whenever the auth state resolves/changes.
+    async onAuthChanged(user) {
+        this.currentUser = user;
         try {
-            const stored = localStorage.getItem('scent_perfumes');
-            if (stored) return JSON.parse(stored);
-        } catch (e) { /* ignore corrupted storage */ }
-        return DEFAULT_PERFUMES;
+            this.state.myPerfumes = await loadPerfumes(user, DEFAULT_PERFUMES);
+        } catch (e) {
+            const isEn = this.state.currentLang === 'en';
+            this.showToast(isEn ? 'Failed to load your collection' : '加载收藏失败，请稍后重试', 'error');
+        }
+        this.renderPerfumeList();
+        if (this.state.currentView === 'card') this.viz.renderCard();
+        if (this.state.currentView === 'social') this.renderSocial();
     }
 
-    savePerfumesToStorage() {
-        localStorage.setItem('scent_perfumes', JSON.stringify(this.state.myPerfumes));
+    async persist() {
+        try {
+            await savePerfumes(this.currentUser, this.state.myPerfumes);
+        } catch (e) {
+            const isEn = this.state.currentLang === 'en';
+            this.showToast(isEn ? 'Failed to save — check your connection' : '保存失败，请检查网络后重试', 'error');
+        }
     }
 
     showToast(message, type = 'info') {
@@ -60,12 +74,12 @@ class ScentMateApp {
     }
 
     init() {
-        this.auth.init();
         this.updateTexts();
         this.renderPerfumeList();
         this.initPicker();
         this.initHomeAnimation();
         this.bindEvents();
+        this.auth.init(); // sets up auth listener; onAuthChanged reloads the right data source
     }
 
     initHomeAnimation() {
@@ -265,9 +279,9 @@ class ScentMateApp {
         const t = this.getTranslation();
         if (confirm(t.collection.delete_confirm)) {
             this.state.myPerfumes = this.state.myPerfumes.filter(p => p.id !== id);
-            this.savePerfumesToStorage();
             this.renderPerfumeList();
             this.showToast(t.toast.deleted, 'info');
+            this.persist();
         }
     }
 
@@ -326,9 +340,9 @@ class ScentMateApp {
         }
 
         this.state.editingId = null;
-        this.savePerfumesToStorage();
         this.renderPerfumeList();
         document.getElementById('add-modal').classList.remove('active');
+        this.persist();
     }
 
     // --- Smart Inputs ---
