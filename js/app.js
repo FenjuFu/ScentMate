@@ -17,7 +17,17 @@ const DEFAULT_PERFUMES = [
     { id: 11, name: "五朵里 鸭屎香", brand: "", notes: { top: ["香柠檬", "莎草", "辛香料"], middle: ["乌龙茶", "兰花"], base: ["香根草", "愈创木", "不凋花"] } },
     { id: 12, name: "花宫娜天芥菜生姜heliotrope gingembre", brand: "", notes: { top: ["佛手柑", "橙子"], middle: ["玫瑰", "肉桂", "姜", "苹果"], base: ["天芥菜", "零陵香豆", "焦糖"] } },
     { id: 13, name: "hellenist梦神之臂", brand: "", notes: { top: ["紫罗兰叶", "桃子", "天芥菜"], middle: ["鸢尾草", "紫罗兰", "榛木"], base: ["香草", "零陵香豆", "喀什米尔木"] } },
-    { id: 14, name: "费雷罗选集", brand: "", notes: { top: ["薄荷", "天竺葵", "苦橙", "柠檬", "香柠檬"], middle: ["广藿香", "马黛茶", "胡萝卜籽", "肉豆蔻"], base: ["冷杉", "零陵香豆", "愈创木", "安息香"] } }
+    { id: 14, name: "费雷罗选集", brand: "", notes: { top: ["薄荷", "天竺葵", "苦橙", "柠檬", "香柠檬"], middle: ["广藿香", "马黛茶", "胡萝卜籽", "肉豆蔻"], base: ["冷杉", "零陵香豆", "愈创木", "安息香"] } },
+    { id: 15, name: "曼谷", brand: "Cottee", notes: { top: ["佛手柑", "柠檬", "胡椒"], middle: ["黑醋栗", "白花"], base: ["琥珀", "香根草"] } },
+    { id: 16, name: "半生瓜", brand: "MO MAKE", notes: { top: ["苦瓜", "青绿", "佛手柑", "黄瓜"], middle: ["仙客来", "蜜瓜", "铃兰"], base: ["白松香", "麝香", "百合"] } },
+    { id: 17, name: "水仙", brand: "窄门", notes: { top: ["冷杉", "松叶", "薄荷", "柑橘"], middle: ["小花茉莉", "五月玫瑰", "水仙"], base: ["乳香", "沉香", "橡木苔", "奇楠"] } },
+    { id: 18, name: "倔强草莓", brand: "天乐", notes: { top: ["黑加仑", "小青柑", "粉红胡椒"], middle: ["草莓", "金橘", "广藿香", "依兰", "桂花"], base: ["葡萄柚", "龙涎香", "香草", "麝香"] } },
+    { id: 19, name: "不焦绿", brand: "减法", notes: { top: ["摩洛哥艾蒿", "香柠檬", "大黄"], middle: ["甜罗勒", "迷迭香", "苦橙叶", "白茉莉"], base: ["广藿香", "巴拉圭愈创木", "檀香"] } },
+    { id: 20, name: "薄荷茶", brand: "", notes: { top: ["胡椒薄荷", "克莱门丁橘", "中式珠茶"], middle: ["鸢尾根", "小花茉莉", "咖啡"], base: ["香根草", "檀香木", "灰琥珀"] } },
+    { id: 21, name: "雨崩", brand: "肌肤之味", notes: { top: ["普洱茶", "蕨类植物"], middle: ["墨红玫瑰", "白檀"], base: ["广藿香", "茶香"] } },
+    { id: 22, name: "Maison 21G", brand: "", notes: { top: [], middle: ["茉莉", "麝香", "檀香"], base: [] } },
+    { id: 23, name: "特洛伊莲花", brand: "Sifr Aromatics", notes: { top: ["黑麝香", "莲花"], middle: ["广藿香", "茶叶", "月桂叶"], base: ["檀香", "雪松"] } },
+    { id: 24, name: "Mutsu", brand: "Sifr Aromatics", notes: { top: ["柠檬"], middle: ["青梨", "青苹果"], base: ["花香麝香"] } }
 ];
 
 class ScentMateApp {
