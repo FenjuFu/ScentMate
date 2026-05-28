@@ -55,15 +55,26 @@ export const PROFILE_COLORS = {
 
 export const SCENT_TRANSLATIONS = {
     "柑橘": "Citrus", "香柠檬": "Bergamot", "柠檬": "Lemon", "苦橙": "Bitter Orange", "葡萄柚": "Grapefruit",
+    "克莱门丁橘": "Clementine", "小青柑": "Green Mandarin", "金橘": "Kumquat", "佛手柑": "Bergamot",
     "花香": "Floral", "茉莉": "Jasmine", "玫瑰": "Rose", "依兰": "Ylang-Ylang", "铃兰": "Lily of the Valley",
+    "白花": "White Flowers", "仙客来": "Cyclamen", "水仙": "Narcissus", "小花茉莉": "Jasmine Sambac",
+    "五月玫瑰": "May Rose", "桂花": "Osmanthus", "白茉莉": "White Jasmine", "鸢尾根": "Orris Root",
+    "墨红玫瑰": "Dark Red Rose", "莲花": "Lotus", "百合": "Lily",
     "木质": "Woody", "檀香木": "Sandalwood", "雪松": "Cedar", "香根草": "Vetiver", "广藿香": "Patchouli",
+    "沉香": "Agarwood", "奇楠": "Kinam", "巴拉圭愈创木": "Paraguayan Guaiac Wood", "檀香": "Sandalwood", "白檀": "White Sandalwood",
     "辛辣": "Spicy", "粉红胡椒": "Pink Pepper", "黑胡椒": "Black Pepper", "小豆蔻": "Cardamom", "肉桂": "Cinnamon",
     "美食": "Gourmand", "香草": "Vanilla", "零陵香豆": "Tonka Bean", "焦糖": "Caramel", "巧克力": "Chocolate",
     "草本": "Herbal", "薄荷": "Mint", "罗勒": "Basil", "迷迭香": "Rosemary", "鼠尾草": "Sage",
+    "摩洛哥艾蒿": "Moroccan Mugwort", "甜罗勒": "Sweet Basil", "胡椒薄荷": "Peppermint", "中式珠茶": "Chinese Gunpowder Tea",
+    "普洱茶": "Pu-erh Tea", "茶香": "Tea Accord",
     "果香": "Fruity", "苹果": "Apple", "桃子": "Peach", "梨": "Pear", "黑加仑": "Blackcurrant",
+    "黑醋栗": "Blackcurrant", "蜜瓜": "Melon", "草莓": "Strawberry", "青梨": "Green Pear", "青苹果": "Green Apple",
     "树脂": "Resinous", "琥珀": "Amber", "乳香": "Frankincense", "没药": "Myrrh", "安息香": "Benzoin",
+    "灰琥珀": "Gray Amber",
     "动物": "Animalic", "麝香": "Musk", "龙涎香": "Ambergris", "海狸香": "Castoreum", "皮革": "Leather",
-    "绿叶": "Green", "紫罗兰叶": "Violet Leaf"
+    "黑麝香": "Black Musk", "花香麝香": "Floral Musk",
+    "绿叶": "Green", "紫罗兰叶": "Violet Leaf", "青绿": "Green Notes", "苦瓜": "Bitter Melon", "黄瓜": "Cucumber",
+    "松叶": "Pine Needles", "蕨类植物": "Fern", "大黄": "Rhubarb"
 };
 
 export const TRANSLATIONS = {
