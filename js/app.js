@@ -1,7 +1,8 @@
 import { DB, ALL_INGREDIENTS, SCENT_TRANSLATIONS, TRANSLATIONS, PROFILE_COLORS } from './data.js';
 import { AuthSystem } from './auth.js';
 import { ScentVisualization } from './viz.js';
-import { loadLocalSync, loadPerfumes, loadPublicUsers, savePerfumes } from './store.js';
+import { buildFallbackIdentity, generateCollectionIdentity } from './ai-service.js';
+import { createCollection, loadLocalSync, loadPerfumes, loadPublicUsers, savePerfumes } from './store.js';
 
 const DEFAULT_PERFUMES = [
     { id: 1, name: "蓦岚 青藤", brand: "", notes: { top: ["苦橙", "罗勒"], middle: ["常春藤"], base: ["小豆蔻", "橡木苔"] } },
@@ -48,10 +49,13 @@ const DEFAULT_PERFUMES = [
 
 class ScentMateApp {
     constructor() {
+        const initialCollections = loadLocalSync(DEFAULT_PERFUMES);
         this.state = {
             currentLang: localStorage.getItem('scent_lang') || 'zh',
             currentView: 'home',
-            myPerfumes: loadLocalSync(DEFAULT_PERFUMES),
+            ownedCollections: initialCollections,
+            activeCollectionId: initialCollections[0]?.id || null,
+            myPerfumes: initialCollections[0]?.perfumes || [],
             collectionProfile: null,
             cardProfile: null,
             publicUsers: [],
@@ -66,11 +70,58 @@ class ScentMateApp {
         this.viz = new ScentVisualization(this);
     }
 
+    getOwnedCollections() {
+        return Array.isArray(this.state.ownedCollections) ? this.state.ownedCollections : [];
+    }
+
+    getActiveOwnedCollection() {
+        return this.getOwnedCollections().find(item => item.id === this.state.activeCollectionId) || this.getOwnedCollections()[0] || null;
+    }
+
+    getAllOwnedPerfumes() {
+        return this.getOwnedCollections().flatMap(item => item.perfumes || []);
+    }
+
+    setOwnedCollections(collections, { activeCollectionId = null } = {}) {
+        const safeCollections = Array.isArray(collections) && collections.length > 0
+            ? collections
+            : [createCollection({}, this.auth?.getSavedVisibilitySettings?.() || undefined, 1)];
+        const targetId = activeCollectionId || this.state.activeCollectionId || safeCollections[0].id;
+        const activeCollection = safeCollections.find(item => item.id === targetId) || safeCollections[0];
+
+        this.state.ownedCollections = safeCollections;
+        this.state.activeCollectionId = activeCollection.id;
+        this.state.myPerfumes = activeCollection.perfumes || [];
+    }
+
+    updateActiveCollection(updater) {
+        const activeCollection = this.getActiveOwnedCollection();
+        if (!activeCollection) return null;
+
+        const nextCollections = this.getOwnedCollections().map((item) => {
+            if (item.id !== activeCollection.id) return item;
+            const updated = updater({ ...item, perfumes: JSON.parse(JSON.stringify(item.perfumes || [])) });
+            return {
+                ...updated,
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        this.setOwnedCollections(nextCollections, { activeCollectionId: activeCollection.id });
+        return this.getActiveOwnedCollection();
+    }
+
+    getCollectionDefaultName() {
+        const isEn = this.state.currentLang === 'en';
+        return isEn ? `Collection ${this.getOwnedCollections().length + 1}` : `收藏夹 ${this.getOwnedCollections().length + 1}`;
+    }
+
     // Called by AuthSystem whenever the auth state resolves/changes.
     async onAuthChanged(user) {
         this.currentUser = user;
         try {
-            this.state.myPerfumes = await loadPerfumes(user, DEFAULT_PERFUMES);
+            const collections = await loadPerfumes(user, DEFAULT_PERFUMES, this.auth.getSavedVisibilitySettings());
+            this.setOwnedCollections(collections);
         } catch (e) {
             const isEn = this.state.currentLang === 'en';
             this.showToast(isEn ? 'Failed to load your collection' : '加载收藏失败，请稍后重试', 'error');
@@ -84,7 +135,7 @@ class ScentMateApp {
 
     async persist() {
         try {
-            await savePerfumes(this.currentUser, this.state.myPerfumes, this.auth.getSavedVisibilitySettings());
+            await savePerfumes(this.currentUser, this.getOwnedCollections(), this.auth.getSavedVisibilitySettings());
         } catch (e) {
             const isEn = this.state.currentLang === 'en';
             this.showToast(isEn ? 'Failed to save — check your connection' : '保存失败，请检查网络后重试', 'error');
@@ -231,22 +282,29 @@ class ScentMateApp {
     // --- Perfume Management ---
     renderPerfumeList() {
         const container = document.getElementById('perfume-list');
+        const manager = document.getElementById('collection-manager');
         const t = this.getTranslation();
         const isEn = this.state.currentLang === 'en';
         const q = this.state.searchQuery;
         const activeCollectionProfile = this.getActiveCollectionProfile();
         const isReadonlyCollection = !!activeCollectionProfile;
         const activePerfumes = this.getActiveCollectionPerfumes();
+        const activeOwnedCollection = this.getActiveOwnedCollection();
         const titleEl = document.getElementById('collection-title');
         const addBtn = document.getElementById('btn-add-perfume');
 
         if (titleEl) {
             titleEl.textContent = activeCollectionProfile
-                ? (isEn ? `${activeCollectionProfile.name}'s Public Collection` : `${activeCollectionProfile.name} 的公开收藏`)
-                : t.collection.title;
+                ? (isEn
+                    ? `${activeCollectionProfile.ownerName}'s ${activeCollectionProfile.collectionName}`
+                    : `${activeCollectionProfile.ownerName} 的「${activeCollectionProfile.collectionName}」`)
+                : (activeOwnedCollection?.name || t.collection.title);
         }
         if (addBtn) {
             addBtn.style.display = isReadonlyCollection ? 'none' : '';
+        }
+        if (manager) {
+            this.renderCollectionManager(manager, activeCollectionProfile, activeOwnedCollection);
         }
 
         container.innerHTML = '';
@@ -332,10 +390,196 @@ class ScentMateApp {
         }
     }
 
+    renderCollectionManager(container, activeCollectionProfile, activeOwnedCollection) {
+        const isEn = this.state.currentLang === 'en';
+
+        if (activeCollectionProfile) {
+            container.innerHTML = `
+                <div class="collection-manager-card readonly">
+                    <div class="collection-public-head">
+                        <div>
+                            <div class="collection-public-owner">${this.escapeHtml(activeCollectionProfile.ownerName)}</div>
+                            <div class="collection-public-name">${this.escapeHtml(activeCollectionProfile.collectionName)}</div>
+                        </div>
+                        <div class="collection-public-badges">
+                            ${activeCollectionProfile.publicCollectionEnabled ? `<span class="collection-status-chip active">${isEn ? 'Public collection' : '公开收藏夹'}</span>` : ''}
+                            ${activeCollectionProfile.publicCardEnabled ? `<span class="collection-status-chip active">${isEn ? 'Public card' : '公开气味名片'}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        const collections = this.getOwnedCollections();
+        const cardsReady = !!(activeOwnedCollection?.cardTitle || activeOwnedCollection?.cardQuote);
+        const tabs = collections.map((item) => `
+            <button class="collection-folder-tab${item.id === this.state.activeCollectionId ? ' active' : ''}" type="button" data-collection-id="${item.id}">
+                <span class="collection-folder-icon">▣</span>
+                <span>${this.escapeHtml(item.name)}</span>
+            </button>
+        `).join('');
+
+        container.innerHTML = `
+            <div class="collection-manager-card">
+                <div class="collection-folder-row">
+                    ${tabs}
+                    <button class="btn-secondary collection-small-btn" id="btn-collection-create" type="button">${isEn ? '+ New collection' : '+ 新建收藏夹'}</button>
+                </div>
+                <div class="collection-toolbar-row">
+                    <div class="collection-toolbar-group">
+                        <button class="btn-secondary collection-small-btn" id="btn-collection-rename" type="button">${isEn ? 'Rename' : '重命名'}</button>
+                        <button class="btn-secondary collection-small-btn" id="btn-collection-delete" type="button">${isEn ? 'Delete' : '删除'}</button>
+                        <button class="btn-secondary collection-small-btn" id="btn-collection-ai" type="button">${isEn ? 'AI name + card' : 'AI 命名与卡片'}</button>
+                        <button class="btn-secondary collection-small-btn" id="btn-collection-view-card" type="button">${isEn ? 'Open card' : '查看名片'}</button>
+                    </div>
+                    <div class="collection-toolbar-group">
+                        <button class="collection-toggle-btn${activeOwnedCollection?.publicCollectionEnabled ? ' active' : ''}" id="btn-toggle-public-collection" type="button">${isEn ? 'Public collection' : '公开收藏夹'}</button>
+                        <button class="collection-toggle-btn${activeOwnedCollection?.publicCardEnabled ? ' active' : ''}" id="btn-toggle-public-card" type="button">${isEn ? 'Public card' : '公开气味名片'}</button>
+                    </div>
+                </div>
+                <div class="collection-meta-row">
+                    <span class="collection-status-chip">${this.escapeHtml(cardsReady ? (isEn ? 'Card ready' : '已生成专属卡片') : (isEn ? 'Using rule-based card' : '当前使用规则生成卡片'))}</span>
+                    ${activeOwnedCollection?.cardTitle ? `<span class="collection-status-chip active">${this.escapeHtml(activeOwnedCollection.cardTitle)}</span>` : ''}
+                </div>
+            </div>
+        `;
+
+        container.querySelectorAll('.collection-folder-tab').forEach((button) => {
+            button.addEventListener('click', () => {
+                this.state.activeCollectionId = button.getAttribute('data-collection-id');
+                const activeCollection = this.getActiveOwnedCollection();
+                this.state.myPerfumes = activeCollection?.perfumes || [];
+                if (this.state.currentView === 'card') this.viz.renderCard();
+                this.renderPerfumeList();
+            });
+        });
+        document.getElementById('btn-collection-create')?.addEventListener('click', () => this.createCollectionFolder());
+        document.getElementById('btn-collection-rename')?.addEventListener('click', () => this.renameActiveCollection());
+        document.getElementById('btn-collection-delete')?.addEventListener('click', () => this.deleteActiveCollection());
+        document.getElementById('btn-collection-ai')?.addEventListener('click', () => this.generateActiveCollectionIdentity());
+        document.getElementById('btn-collection-view-card')?.addEventListener('click', () => this.navigate('card'));
+        document.getElementById('btn-toggle-public-collection')?.addEventListener('click', () => this.toggleActiveCollectionVisibility('publicCollectionEnabled'));
+        document.getElementById('btn-toggle-public-card')?.addEventListener('click', () => this.toggleActiveCollectionVisibility('publicCardEnabled'));
+    }
+
+    createCollectionFolder() {
+        const isEn = this.state.currentLang === 'en';
+        const suggested = this.getCollectionDefaultName();
+        const name = prompt(isEn ? 'Name your new collection' : '给新收藏夹起个名字', suggested);
+        if (name === null) return;
+
+        const visibilityDefaults = this.auth.getSavedVisibilitySettings();
+        const collection = createCollection({
+            name: name.trim() || suggested,
+            perfumes: [],
+            publicCollectionEnabled: visibilityDefaults.publicCollection,
+            publicCardEnabled: visibilityDefaults.publicCard
+        }, visibilityDefaults, this.getOwnedCollections().length + 1);
+
+        this.setOwnedCollections([...this.getOwnedCollections(), collection], { activeCollectionId: collection.id });
+        this.renderPerfumeList();
+        this.persist();
+    }
+
+    renameActiveCollection() {
+        const activeCollection = this.getActiveOwnedCollection();
+        if (!activeCollection) return;
+
+        const isEn = this.state.currentLang === 'en';
+        const nextName = prompt(isEn ? 'Rename collection' : '重命名收藏夹', activeCollection.name);
+        if (nextName === null) return;
+
+        this.updateActiveCollection((item) => ({
+            ...item,
+            name: nextName.trim() || item.name
+        }));
+        this.renderPerfumeList();
+        if (this.state.currentView === 'card') this.viz.renderCard();
+        this.persist();
+    }
+
+    deleteActiveCollection() {
+        const collections = this.getOwnedCollections();
+        if (collections.length <= 1) {
+            this.showToast(this.state.currentLang === 'en' ? 'Keep at least one collection' : '至少保留一个收藏夹', 'info');
+            return;
+        }
+
+        const activeCollection = this.getActiveOwnedCollection();
+        if (!activeCollection) return;
+        const isEn = this.state.currentLang === 'en';
+        const confirmed = confirm(isEn ? `Delete "${activeCollection.name}"?` : `确定删除「${activeCollection.name}」吗？`);
+        if (!confirmed) return;
+
+        const remaining = collections.filter(item => item.id !== activeCollection.id);
+        this.setOwnedCollections(remaining, { activeCollectionId: remaining[0]?.id || null });
+        this.renderPerfumeList();
+        if (this.state.currentView === 'card') this.viz.renderCard();
+        this.persist();
+    }
+
+    toggleActiveCollectionVisibility(field) {
+        const activeCollection = this.getActiveOwnedCollection();
+        if (!activeCollection) return;
+
+        this.updateActiveCollection((item) => ({
+            ...item,
+            [field]: !item[field]
+        }));
+        this.renderPerfumeList();
+        if (this.state.currentView === 'social') this.renderSocial();
+        this.persist();
+    }
+
+    async generateActiveCollectionIdentity() {
+        const activeCollection = this.getActiveOwnedCollection();
+        if (!activeCollection) return;
+
+        if (!activeCollection.perfumes || activeCollection.perfumes.length === 0) {
+            this.showToast(this.state.currentLang === 'en' ? 'Add perfumes before using AI naming' : '先往收藏夹里添加香水，再生成 AI 名称', 'info');
+            return;
+        }
+
+        const isEn = this.state.currentLang === 'en';
+        this.showToast(isEn ? 'Generating collection identity...' : '正在生成收藏夹名字与气味名片...', 'info');
+        try {
+            const identity = await generateCollectionIdentity(activeCollection, this.state.currentLang);
+            this.updateActiveCollection((item) => ({
+                ...item,
+                name: identity.name,
+                cardTitle: identity.cardTitle,
+                cardQuote: identity.cardQuote
+            }));
+            this.renderPerfumeList();
+            if (this.state.currentView === 'card') this.viz.renderCard();
+            this.persist();
+            this.showToast(identity.source === 'ai'
+                ? (isEn ? 'AI identity generated' : '已生成 AI 收藏夹名与气味名片')
+                : (isEn ? 'Using fallback naming' : 'AI 不可用，已使用回退命名'), 'success');
+        } catch (error) {
+            this.showToast(isEn ? 'AI request failed, using fallback naming' : 'AI 请求失败，已使用回退命名', 'info');
+            const identity = buildFallbackIdentity(activeCollection, this.state.currentLang);
+            this.updateActiveCollection((item) => ({
+                ...item,
+                name: identity.name,
+                cardTitle: identity.cardTitle,
+                cardQuote: identity.cardQuote
+            }));
+            this.renderPerfumeList();
+            if (this.state.currentView === 'card') this.viz.renderCard();
+            this.persist();
+        }
+    }
+
     deletePerfume(id) {
         const t = this.getTranslation();
         if (confirm(t.collection.delete_confirm)) {
-            this.state.myPerfumes = this.state.myPerfumes.filter(p => p.id !== id);
+            const nextPerfumes = this.state.myPerfumes.filter(p => p.id !== id);
+            this.updateActiveCollection((item) => ({
+                ...item,
+                perfumes: nextPerfumes
+            }));
             this.renderPerfumeList();
             this.showToast(t.toast.deleted, 'info');
             this.persist();
@@ -386,13 +630,22 @@ class ScentMateApp {
         const brand = document.getElementById('input-perfume-brand').value.trim();
 
         if (this.state.editingId) {
-            const perfume = this.state.myPerfumes.find(p => p.id === this.state.editingId);
-            perfume.name = name;
-            perfume.brand = brand;
-            perfume.notes = notes;
+            const nextPerfumes = this.state.myPerfumes.map((perfume) => (
+                perfume.id === this.state.editingId
+                    ? { ...perfume, name, brand, notes }
+                    : perfume
+            ));
+            this.updateActiveCollection((item) => ({
+                ...item,
+                perfumes: nextPerfumes
+            }));
             this.showToast(t.toast.updated, 'success');
         } else {
-            this.state.myPerfumes.push({ id: Date.now(), name, brand, notes });
+            const nextPerfumes = [...this.state.myPerfumes, { id: Date.now(), name, brand, notes }];
+            this.updateActiveCollection((item) => ({
+                ...item,
+                perfumes: nextPerfumes
+            }));
             this.showToast(t.toast.saved, 'success');
         }
 
@@ -611,7 +864,7 @@ class ScentMateApp {
     }
 
     getActiveCollectionPerfumes() {
-        return this.state.collectionProfile ? (this.state.collectionProfile.publicCollectionPerfumes || []) : this.state.myPerfumes;
+        return this.state.collectionProfile ? (this.state.collectionProfile.publicCollectionPerfumes || []) : (this.getActiveOwnedCollection()?.perfumes || []);
     }
 
     getActiveCardProfile() {
@@ -619,7 +872,11 @@ class ScentMateApp {
     }
 
     getActiveCardPerfumes() {
-        return this.state.cardProfile ? (this.state.cardProfile.publicCardPerfumes || []) : this.state.myPerfumes;
+        return this.state.cardProfile ? (this.state.cardProfile.publicCardPerfumes || []) : (this.getActiveOwnedCollection()?.perfumes || []);
+    }
+
+    getCurrentCardCollectionMeta() {
+        return this.state.cardProfile || this.getActiveOwnedCollection();
     }
 
     openPublicCollection(user) {
@@ -653,7 +910,7 @@ class ScentMateApp {
         const container = document.getElementById('match-list');
         const t = this.getTranslation().social;
         const isEn = this.state.currentLang === 'en';
-        container.innerHTML = `<div class="collection-empty">${isEn ? 'Loading public profiles...' : '正在加载公开资料...'}</div>`;
+        container.innerHTML = `<div class="collection-empty">${isEn ? 'Loading public collections...' : '正在加载公开收藏夹...'}</div>`;
 
         try {
             const publicUsers = await loadPublicUsers(this.currentUser);
@@ -666,7 +923,7 @@ class ScentMateApp {
 
             const myNotes = new Set();
             if (this.currentUser) {
-                this.state.myPerfumes.forEach(p => {
+                this.getAllOwnedPerfumes().forEach(p => {
                     p.notes.top.forEach(n => myNotes.add(n));
                     p.notes.middle.forEach(n => myNotes.add(n));
                     p.notes.base.forEach(n => myNotes.add(n));
@@ -697,7 +954,7 @@ class ScentMateApp {
                 const el = document.createElement('div');
                 el.className = 'match-card';
                 const commonStr = m.common.map(n => isEn ? (SCENT_TRANSLATIONS[n] || n) : n).join(", ");
-                const avatar = this.auth.renderAvatarMarkup(m.photoURL, m.name, 'match-avatar-img', 'match-avatar');
+                const avatar = this.auth.renderAvatarMarkup(m.photoURL, m.ownerName || m.name, 'match-avatar-img', 'match-avatar');
                 const badges = [
                     m.publicCollectionEnabled ? `<span class="social-badge">${this.escapeHtml(t.public_collection)}</span>` : '',
                     m.publicCardEnabled ? `<span class="social-badge">${this.escapeHtml(t.public_card)}</span>` : ''
@@ -711,7 +968,8 @@ class ScentMateApp {
                     ${avatar}
                     <div class="match-info">
                         <div class="social-badge-row">${badges}</div>
-                        <h3 class="match-name">${this.escapeHtml(m.name)}</h3>
+                        <h3 class="match-name">${this.escapeHtml(m.collectionName)}</h3>
+                        <div class="social-owner-line">${this.escapeHtml(m.ownerName || m.name)}</div>
                         <div class="social-public-stats">${t.public_perfumes}: ${m.publicPerfumeCount} · ${t.public_scents}: ${m.publicScentCount}</div>
                         ${canScoreMatches ? `<div class="social-common-line">${t.common_likes}: ${this.escapeHtml(commonStr || t.no_overlap)}</div>` : ''}
                     </div>

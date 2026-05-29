@@ -157,12 +157,21 @@ export class ScentVisualization {
     generatePoeticContent(topScents) {
         const lang = this.app.state.currentLang;
         const t = this.app.getTranslation().card;
+        const currentCard = this.app.getCurrentCardCollectionMeta();
         const profile = this.app.getActiveCardProfile();
-        const ownerName = profile ? profile.name : (this.app.currentUser ? this.app.auth.displayName(this.app.currentUser) : '');
+        const ownerName = profile
+            ? (profile.ownerName || profile.name)
+            : (this.app.currentUser ? this.app.auth.displayName(this.app.currentUser) : '');
+        const collectionName = profile ? profile.collectionName : currentCard?.name;
+        const customTitle = currentCard?.cardTitle || '';
+        const customQuote = currentCard?.cardQuote || '';
         
         if (topScents.length === 0) {
-            document.getElementById('card-user-title').textContent = ownerName ? `${ownerName} · ${t.explorer}` : t.explorer;
-            document.getElementById('card-poetic-quote').textContent = `“${profile && profile.bio ? profile.bio : t.default_quote}”`;
+            const emptyTitle = customTitle || (collectionName
+                ? (ownerName ? `${ownerName} · ${collectionName}` : collectionName)
+                : (ownerName ? `${ownerName} · ${t.explorer}` : t.explorer));
+            document.getElementById('card-user-title').textContent = emptyTitle;
+            document.getElementById('card-poetic-quote').textContent = `“${customQuote || t.default_quote}”`;
             return;
         }
         
@@ -178,9 +187,9 @@ export class ScentVisualization {
             en: { "木质": "Rooted in earth, breathing in clouds, your soul bears the rings of trees.", "花香": "In this moment, everything blooms for you, the air filled with gentle whispers.", "柑橘": "Bright as the first light of a summer morning, dispelling all haze.", "辛辣": "Passionate and profound, like a dancing flame in an ancient bazaar.", "美食": "Memory is sweet, like a freshly baked vanilla cake, warm and peaceful.", "草本": "The trace of wind over grass is your clear and free heartbeat." }
         };
 
-        const poeticTitle = titles[lang][dominant] || t.explorer;
+        const poeticTitle = customTitle || titles[lang][dominant] || t.explorer;
         const title = ownerName ? `${ownerName} · ${poeticTitle}` : poeticTitle;
-        const quote = profile && profile.bio ? profile.bio : (quotes[lang][dominant] || t.default_quote);
+        const quote = customQuote || (quotes[lang][dominant] || t.default_quote);
 
         document.getElementById('card-user-title').textContent = title;
         document.getElementById('card-poetic-quote').textContent = `“${quote}”`;

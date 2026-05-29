@@ -16,6 +16,7 @@ Desktop.ini
 .env.development.local
 .env.test.local
 .env.production.local
+js/ai-config.local.js
 *.pem
 *.key
 *.ps1

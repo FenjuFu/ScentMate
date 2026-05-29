@@ -460,7 +460,7 @@ export class AuthSystem {
                 displayName: nickname,
                 photoURL
             });
-            this.savedVisibilitySettings = await saveUserVisibilitySettings(activeUser, visibilitySettings, this.app.state.myPerfumes);
+            this.savedVisibilitySettings = await saveUserVisibilitySettings(activeUser, visibilitySettings, this.app.getOwnedCollections());
             this.user = auth.currentUser || activeUser;
             this.app.currentUser = this.user;
             this.syncProfileDraft(this.user, true, this.savedVisibilitySettings);
@@ -494,8 +494,9 @@ export class AuthSystem {
         const isCustomAvatar = !!this.profileDraft.customPhotoURL;
         const visibilityCollectionText = this.profileDraft.publicCollection ? t.visibility_public : t.visibility_private;
         const visibilityCardText = this.profileDraft.publicCard ? t.visibility_public : t.visibility_private;
+        const allPerfumes = this.app.getAllOwnedPerfumes();
         const uniqueNotes = new Set();
-        this.app.state.myPerfumes.forEach(perfume => {
+        allPerfumes.forEach(perfume => {
             perfume.notes.top.forEach(note => uniqueNotes.add(note));
             perfume.notes.middle.forEach(note => uniqueNotes.add(note));
             perfume.notes.base.forEach(note => uniqueNotes.add(note));
@@ -517,7 +518,7 @@ export class AuthSystem {
                         <p class="profile-subtitle">${this.escapeHtml(t.subtitle)}</p>
                         <div class="profile-stat-row">
                             <div class="profile-stat-card">
-                                <div class="profile-stat-value">${this.app.state.myPerfumes.length}</div>
+                                <div class="profile-stat-value">${allPerfumes.length}</div>
                                 <div class="profile-stat-label">${this.escapeHtml(t.perfume_count)}</div>
                             </div>
                             <div class="profile-stat-card">
@@ -535,7 +536,7 @@ export class AuthSystem {
 
                 <div class="profile-form-card">
                     <div class="profile-visibility-banner">
-                        <div class="profile-visibility-banner-title">${this.escapeHtml(t.visibility_status_title)}</div>
+                        <div class="profile-visibility-banner-title">${this.escapeHtml(this.app.state.currentLang === 'en' ? 'New collection default visibility' : '新建收藏夹默认公开设置')}</div>
                         <div class="profile-visibility-banner-badges">
                             <span class="profile-status-pill${this.profileDraft.publicCollection ? ' active' : ''}">${this.escapeHtml(t.public_collection_label)}: ${this.escapeHtml(visibilityCollectionText)}</span>
                             <span class="profile-status-pill${this.profileDraft.publicCard ? ' active' : ''}">${this.escapeHtml(t.public_card_label)}: ${this.escapeHtml(visibilityCardText)}</span>
