@@ -3,6 +3,7 @@ import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/
 
 const LS_KEY = 'scent_perfumes';
 const DEFAULT_COLLECTION_OWNER_EMAIL = 'fufenju@pku.edu.cn';
+const OWNER_COLLECTION_RECOVERY_FLAG = 'ownerDefaultsRecovered';
 
 function loadLocal(defaults) {
     try {
@@ -27,11 +28,30 @@ export async function loadPerfumes(user, defaults) {
     if (isFirebaseConfigured && user) {
         const ref = doc(db, 'users', user.uid);
         const snap = await getDoc(ref);
-        if (snap.exists() && Array.isArray(snap.data().perfumes)) {
-            return snap.data().perfumes;
+        if (snap.exists()) {
+            const data = snap.data();
+            if (Array.isArray(data.perfumes)) {
+                const shouldRecoverOwnerDefaults =
+                    user.email === DEFAULT_COLLECTION_OWNER_EMAIL &&
+                    data.perfumes.length === 0 &&
+                    !data[OWNER_COLLECTION_RECOVERY_FLAG];
+
+                if (shouldRecoverOwnerDefaults) {
+                    await setDoc(ref, {
+                        perfumes: defaults,
+                        [OWNER_COLLECTION_RECOVERY_FLAG]: true
+                    }, { merge: true });
+                    return [...defaults];
+                }
+                return data.perfumes;
+            }
         }
+
         const seededPerfumes = user.email === DEFAULT_COLLECTION_OWNER_EMAIL ? defaults : [];
-        await setDoc(ref, { perfumes: seededPerfumes });
+        await setDoc(ref, {
+            perfumes: seededPerfumes,
+            [OWNER_COLLECTION_RECOVERY_FLAG]: user.email === DEFAULT_COLLECTION_OWNER_EMAIL
+        }, { merge: true });
         return [...seededPerfumes];
     }
     return loadLocal(defaults);
@@ -39,7 +59,10 @@ export async function loadPerfumes(user, defaults) {
 
 export async function savePerfumes(user, perfumes) {
     if (isFirebaseConfigured && user) {
-        await setDoc(doc(db, 'users', user.uid), { perfumes });
+        await setDoc(doc(db, 'users', user.uid), {
+            perfumes,
+            ...(user.email === DEFAULT_COLLECTION_OWNER_EMAIL ? { [OWNER_COLLECTION_RECOVERY_FLAG]: true } : {})
+        }, { merge: true });
     } else {
         saveLocal(perfumes);
     }
