@@ -27,7 +27,22 @@ const DEFAULT_PERFUMES = [
     { id: 21, name: "雨崩", brand: "肌肤之味", notes: { top: ["普洱茶", "蕨类植物"], middle: ["墨红玫瑰", "白檀"], base: ["广藿香", "茶香"] } },
     { id: 22, name: "Maison 21G", brand: "", notes: { top: [], middle: ["茉莉", "麝香", "檀香"], base: [] } },
     { id: 23, name: "特洛伊莲花", brand: "Sifr Aromatics", notes: { top: ["黑麝香", "莲花"], middle: ["广藿香", "茶叶", "月桂叶"], base: ["檀香", "雪松"] } },
-    { id: 24, name: "Mutsu", brand: "Sifr Aromatics", notes: { top: ["柠檬"], middle: ["青梨", "青苹果"], base: ["花香麝香"] } }
+    { id: 24, name: "Mutsu", brand: "Sifr Aromatics", notes: { top: ["柠檬"], middle: ["青梨", "青苹果"], base: ["花香麝香"] } },
+    { id: 25, name: "Matcha 抹茶", brand: "The Perfume Oil Factory", notes: { top: ["抹茶", "杏桃", "罗勒", "香柠檬"], middle: ["百合", "甜瓜", "仙客来"], base: ["绿茶", "麝香", "香根草", "广藿香"] } },
+    { id: 26, name: "无名 Unknown", brand: "", notes: { top: [], middle: ["铃兰", "阿萨姆红茶", "黑醋栗"], base: [] } },
+    { id: 27, name: "Fennel 茴香", brand: "ann fragrance", notes: { top: ["新鲜茴香"], middle: ["葛缕子", "莳萝籽"], base: ["八角茴香"] } },
+    { id: 28, name: "L'Iris 鸢尾", brand: "Santa Maria Novella 圣塔玛利亚诺维拉", notes: { top: ["白松香", "四川花椒", "奈若利橙花"], middle: ["天竺葵", "黄玉兰", "小花茉莉"], base: ["佛罗伦萨鸢尾", "麝香", "龙涎香"] } },
+    { id: 29, name: "POLAR STAR 北极星1902", brand: "MUCHA 穆夏", notes: { top: ["佛手柑", "柠檬", "香橙", "薄荷"], middle: ["绿叶", "雪绒花", "马黛茶", "木质香"], base: ["橡木苔", "香草", "麝香"] } },
+    { id: 30, name: "Chocolate & Salt 巧克力与盐", brand: "MUCHA 穆夏", notes: { top: ["蜜橘", "海盐", "佛手柑"], middle: ["黑巧克力", "芫荽", "迷迭香"], base: ["劳丹脂", "广藿香", "香草", "安息香"] } },
+    { id: 31, name: "Cherry Chocolate 樱桃巧克力1897", brand: "MUCHA 穆夏", notes: { top: ["樱桃", "阿玛雷托", "肉豆蔻"], middle: ["玫瑰", "安息香", "巧克力", "可可"], base: ["广藿香", "麝香", "香草", "琥珀"] } },
+    { id: 32, name: "Patchouli Lavender Vanilla 广藿香薰衣草香草", brand: "SABON", notes: { top: ["薰衣草"], middle: ["琥珀", "广藿香", "薰衣草花"], base: ["香草", "岩玫瑰树脂"] } },
+    { id: 33, name: "Infusion de Rhubarbe 绯裙黄良", brand: "Prada 普拉达", notes: { top: ["绿柑橘"], middle: ["大黄", "玫瑰"], base: ["白麝香"] } },
+    { id: 34, name: "You Or Someone Like You 你或像你的人", brand: "Etat Libre d'Orange 解放橘郡", notes: { top: ["薄荷", "葡萄柚", "香柠檬", "茴香"], middle: ["绿叶", "醋栗叶", "玫瑰", "Hedione"], base: ["白麝香"] } },
+    { id: 35, name: "Whiskey Sour at 23:59 23:59的威士忌酸", brand: "SCENT CHANT 宣香", notes: { top: ["橙皮", "茶", "苹果"], middle: ["香草", "兰花", "鼠尾草"], base: ["柚木", "雪松", "香脂冷杉"] } },
+    { id: 36, name: "White Tea 白茶", brand: "SABON", notes: { top: ["无花果", "柠檬", "茉莉"], middle: ["白茶", "小豆蔻", "肉豆蔻"], base: ["紫罗兰", "雪松", "百里香"] } },
+    { id: 37, name: "Spearmint 绿薄荷", brand: "handhandhand 叁手", notes: { top: ["艾草", "薄荷", "留兰香"], middle: ["薰衣草", "尤加利", "布枯叶", "广藿香"], base: ["雪松", "檀香", "琥珀"] } },
+    { id: 38, name: "Bottega Floral 花卉小铺", brand: "MARMAR;D", notes: { top: ["绿叶", "柠檬", "草本"], middle: ["玫瑰", "茉莉", "栀子花"], base: ["木质香", "依兰"] } },
+    { id: 39, name: "Thays 泰斯", brand: "Fueguia 1833", notes: { top: [], middle: ["马黛花", "绿茶", "柠檬", "木兰", "安息香", "丁香", "豆蔻", "葡萄柚"], base: [] } }
 ];
 
 class ScentMateApp {
