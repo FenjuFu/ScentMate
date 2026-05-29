@@ -470,7 +470,7 @@ export class AuthSystem {
             if (this.app.state.currentView === 'social') this.app.renderSocial();
             this.app.showToast(t.toast.profile_saved, 'success');
         } catch (error) {
-            this.app.showToast(t.profile.save_error, 'error');
+            this.app.showToast(this.mapError(error) || t.profile.save_error, 'error');
         } finally {
             if (saveButton) saveButton.disabled = false;
         }
@@ -703,7 +703,9 @@ export class AuthSystem {
             'auth/network-request-failed': '网络错误，请检查连接',
             'auth/operation-not-allowed': '该登录方式未在 Firebase 控制台启用',
             'auth/unauthorized-domain': '当前域名未加入 Firebase 授权域名列表',
-            'auth/requires-recent-login': '出于安全考虑，请重新登录后再执行此操作'
+            'auth/requires-recent-login': '出于安全考虑，请重新登录后再执行此操作',
+            'permission-denied': 'Firestore 权限不足：大概率是公开资料规则还没部署',
+            'unavailable': 'Firestore 服务暂时不可用，请稍后重试'
         };
         const en = {
             'auth/invalid-email': 'Invalid email format',
@@ -718,7 +720,9 @@ export class AuthSystem {
             'auth/network-request-failed': 'Network error, check your connection',
             'auth/operation-not-allowed': 'This sign-in method is not enabled in Firebase',
             'auth/unauthorized-domain': 'This domain is not in the Firebase authorized list',
-            'auth/requires-recent-login': 'For security, please sign in again before doing this'
+            'auth/requires-recent-login': 'For security, please sign in again before doing this',
+            'permission-denied': 'Firestore permission denied: public profile rules are likely not deployed yet',
+            'unavailable': 'Firestore is temporarily unavailable, please try again'
         };
         const map = isEn ? en : zh;
         return map[code] || (isEn ? `Auth error: ${code || error.message}` : `认证失败：${code || error.message}`);
