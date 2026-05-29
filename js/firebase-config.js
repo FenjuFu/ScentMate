@@ -11,12 +11,12 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebas
 // 并在 Authentication → Settings → 授权域名 里加入 localhost 与你的线上域名。
 // ============================================================
 export const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCv0vvQrmcjvOiRiR21C5huiueXDQ0ZMkQ",
+    authDomain: "scent-mate.firebaseapp.com",
+    projectId: "scent-mate",
+    storageBucket: "scent-mate.firebasestorage.app",
+    messagingSenderId: "510320556140",
+    appId: "1:510320556140:web:1eb82f9050258b26984049"
 };
 
 export const isFirebaseConfigured =
