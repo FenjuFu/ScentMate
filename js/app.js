@@ -1,7 +1,7 @@
-import { DB, ALL_INGREDIENTS, SCENT_TRANSLATIONS, TRANSLATIONS, MOCK_USERS, PROFILE_COLORS } from './data.js';
+import { DB, ALL_INGREDIENTS, SCENT_TRANSLATIONS, TRANSLATIONS, PROFILE_COLORS } from './data.js';
 import { AuthSystem } from './auth.js';
 import { ScentVisualization } from './viz.js';
-import { loadLocalSync, loadPerfumes, savePerfumes } from './store.js';
+import { loadLocalSync, loadPerfumes, loadPublicUsers, savePerfumes } from './store.js';
 
 const DEFAULT_PERFUMES = [
     { id: 1, name: "蓦岚 青藤", brand: "", notes: { top: ["苦橙", "罗勒"], middle: ["常春藤"], base: ["小豆蔻", "橡木苔"] } },
@@ -52,7 +52,9 @@ class ScentMateApp {
             currentLang: localStorage.getItem('scent_lang') || 'zh',
             currentView: 'home',
             myPerfumes: loadLocalSync(DEFAULT_PERFUMES),
+            collectionProfile: null,
             cardProfile: null,
+            publicUsers: [],
             tempNotes: { top: new Set(), middle: new Set(), base: new Set() },
             currentPickingSection: null,
             editingId: null,
@@ -82,7 +84,7 @@ class ScentMateApp {
 
     async persist() {
         try {
-            await savePerfumes(this.currentUser, this.state.myPerfumes);
+            await savePerfumes(this.currentUser, this.state.myPerfumes, this.auth.getSavedVisibilitySettings());
         } catch (e) {
             const isEn = this.state.currentLang === 'en';
             this.showToast(isEn ? 'Failed to save — check your connection' : '保存失败，请检查网络后重试', 'error');
@@ -218,7 +220,9 @@ class ScentMateApp {
         if (navItem) navItem.classList.add('active');
 
         this.state.currentView = viewId;
+        if (viewId === 'collection') this.state.collectionProfile = null;
         if (viewId === 'card') this.state.cardProfile = null;
+        if (viewId === 'collection') this.renderPerfumeList();
         if (viewId === 'card') this.viz.renderCard();
         if (viewId === 'social') this.renderSocial();
         if (viewId === 'profile') this.auth.renderProfileView();
@@ -230,14 +234,31 @@ class ScentMateApp {
         const t = this.getTranslation();
         const isEn = this.state.currentLang === 'en';
         const q = this.state.searchQuery;
+        const activeCollectionProfile = this.getActiveCollectionProfile();
+        const isReadonlyCollection = !!activeCollectionProfile;
+        const activePerfumes = this.getActiveCollectionPerfumes();
+        const titleEl = document.getElementById('collection-title');
+        const addBtn = document.getElementById('btn-add-perfume');
 
-        container.innerHTML = `
-        <div class="perfume-card add-perfume-card" id="card-add-perfume">
-            <div style="font-size: 40px;">+</div>
-            <div>${t.collection.record_new}</div>
-        </div>`;
+        if (titleEl) {
+            titleEl.textContent = activeCollectionProfile
+                ? (isEn ? `${activeCollectionProfile.name}'s Public Collection` : `${activeCollectionProfile.name} 的公开收藏`)
+                : t.collection.title;
+        }
+        if (addBtn) {
+            addBtn.style.display = isReadonlyCollection ? 'none' : '';
+        }
 
-        document.getElementById('card-add-perfume').addEventListener('click', () => this.openAddModal());
+        container.innerHTML = '';
+        if (!isReadonlyCollection) {
+            container.innerHTML = `
+            <div class="perfume-card add-perfume-card" id="card-add-perfume">
+                <div style="font-size: 40px;">+</div>
+                <div>${t.collection.record_new}</div>
+            </div>`;
+
+            document.getElementById('card-add-perfume').addEventListener('click', () => this.openAddModal());
+        }
 
         const formatNotes = (notes) => {
             if (!notes || notes.length === 0) return "-";
@@ -258,10 +279,12 @@ class ScentMateApp {
             return haystack.includes(q);
         };
 
-        const visible = this.state.myPerfumes.filter(matchesQuery);
+        const visible = activePerfumes.filter(matchesQuery);
 
         if (visible.length === 0) {
-            const msg = this.state.myPerfumes.length === 0 ? t.collection.empty : t.collection.empty_search;
+            const msg = activePerfumes.length === 0
+                ? (isReadonlyCollection ? (isEn ? 'This public collection is empty.' : '这个公开收藏夹还是空的。') : t.collection.empty)
+                : t.collection.empty_search;
             const empty = document.createElement('div');
             empty.className = 'collection-empty';
             empty.textContent = msg;
@@ -277,10 +300,10 @@ class ScentMateApp {
             const brandHtml = perfume.brand ? `<div class="perfume-brand">${perfume.brand}</div>` : '';
 
             card.innerHTML = `
-                <div class="card-actions">
+                ${isReadonlyCollection ? '' : `<div class="card-actions">
                     <span class="edit-btn" data-id="${perfume.id}" title="${isEn ? 'Edit' : '编辑'}">✎</span>
                     <span class="delete-btn" data-id="${perfume.id}" title="${isEn ? 'Delete' : '删除'}">×</span>
-                </div>
+                </div>`}
                 <div class="perfume-name">${perfume.name}</div>
                 ${brandHtml}
                 <div class="note-indicators">${dots}</div>
@@ -293,18 +316,20 @@ class ScentMateApp {
             container.appendChild(card);
         });
 
-        container.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.deletePerfume(parseInt(e.currentTarget.getAttribute('data-id')));
+        if (!isReadonlyCollection) {
+            container.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.deletePerfume(parseInt(e.currentTarget.getAttribute('data-id')));
+                });
             });
-        });
-        container.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.openAddModal(parseInt(e.currentTarget.getAttribute('data-id')));
+            container.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openAddModal(parseInt(e.currentTarget.getAttribute('data-id')));
+                });
             });
-        });
+        }
     }
 
     deletePerfume(id) {
@@ -581,18 +606,12 @@ class ScentMateApp {
         return { nodes, links };
     }
 
-    buildMockPerfumes(user) {
-        if (Array.isArray(user.perfumes) && user.perfumes.length > 0) return user.perfumes;
-        const ingredients = Array.isArray(user.ingredients) ? user.ingredients : [];
-        const top = ingredients.slice(0, 2);
-        const middle = ingredients.slice(2, 4);
-        const base = ingredients.slice(4);
-        return [{
-            id: `mock-${user.name}`,
-            name: this.state.currentLang === 'en' ? `${user.name}'s Card` : `${user.name}的气味名片`,
-            brand: user.name,
-            notes: { top, middle, base }
-        }];
+    getActiveCollectionProfile() {
+        return this.state.collectionProfile;
+    }
+
+    getActiveCollectionPerfumes() {
+        return this.state.collectionProfile ? (this.state.collectionProfile.publicCollectionPerfumes || []) : this.state.myPerfumes;
     }
 
     getActiveCardProfile() {
@@ -600,7 +619,18 @@ class ScentMateApp {
     }
 
     getActiveCardPerfumes() {
-        return this.state.cardProfile ? this.buildMockPerfumes(this.state.cardProfile) : this.state.myPerfumes;
+        return this.state.cardProfile ? (this.state.cardProfile.publicCardPerfumes || []) : this.state.myPerfumes;
+    }
+
+    openPublicCollection(user) {
+        this.state.collectionProfile = user;
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById('view-collection').classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        const navItem = document.querySelector(`.nav-item[data-view="collection"]`);
+        if (navItem) navItem.classList.add('active');
+        this.state.currentView = 'collection';
+        this.renderPerfumeList();
     }
 
     openSocialCard(user) {
@@ -619,62 +649,99 @@ class ScentMateApp {
         return entry ? entry.profile : "其他";
     }
 
-    renderSocial() {
+    async renderSocial() {
         const container = document.getElementById('match-list');
         const t = this.getTranslation().social;
         const isEn = this.state.currentLang === 'en';
-        container.innerHTML = '';
-        
-        const myNotes = new Set();
-        this.state.myPerfumes.forEach(p => {
-            p.notes.top.forEach(n => myNotes.add(n));
-            p.notes.middle.forEach(n => myNotes.add(n));
-            p.notes.base.forEach(n => myNotes.add(n));
-        });
-        const myNotesArray = Array.from(myNotes);
+        container.innerHTML = `<div class="collection-empty">${isEn ? 'Loading public profiles...' : '正在加载公开资料...'}</div>`;
 
-        if (myNotesArray.length === 0) {
-            container.innerHTML = `<div style="text-align:center;color:#999;">${t.no_perfume_tip}</div>`;
-            return;
-        }
+        try {
+            const publicUsers = await loadPublicUsers(this.currentUser);
+            this.state.publicUsers = publicUsers;
 
-        const matches = MOCK_USERS.map(user => {
-            const otherNotes = new Set(user.ingredients);
-            const intersection = myNotesArray.filter(x => otherNotes.has(x));
-            const union = new Set([...myNotesArray, ...user.ingredients]);
-            const score = Math.round((intersection.length / union.size) * 100);
-            return { ...user, score, common: intersection };
-        }).sort((a,b) => b.score - a.score);
+            if (publicUsers.length === 0) {
+                container.innerHTML = `<div class="collection-empty">${t.no_public_users}</div>`;
+                return;
+            }
 
-        matches.forEach(m => {
-            const el = document.createElement('div');
-            el.className = 'match-card';
-            const commonStr = m.common.map(n => isEn ? (SCENT_TRANSLATIONS[n] || n) : n).join(", ");
-            
-            el.innerHTML = `
-                <div class="match-avatar">${m.name[0]}</div>
-                <div class="match-info">
-                    <h3 class="match-name">${m.name}</h3>
-                    <div style="font-size:12px; color:#666; margin-bottom:5px;">${m.bio}</div>
-                    <div style="font-size:11px; color:var(--brand-orange);">
-                        ${t.common_likes}: ${commonStr || t.no_overlap}
-                    </div>
-                </div>
-                <div class="match-score">
-                    <span class="score-val">${m.score}%</span>
-                    <span class="score-label">${t.match_score}</span>
-                </div>
-                <button class="btn-outline social-card-btn" data-user="${m.name}">${t.view_card}</button>
-            `;
-            container.appendChild(el);
-        });
+            const myNotes = new Set();
+            if (this.currentUser) {
+                this.state.myPerfumes.forEach(p => {
+                    p.notes.top.forEach(n => myNotes.add(n));
+                    p.notes.middle.forEach(n => myNotes.add(n));
+                    p.notes.base.forEach(n => myNotes.add(n));
+                });
+            }
+            const myNotesArray = Array.from(myNotes);
+            const canScoreMatches = this.currentUser && myNotesArray.length > 0;
 
-        container.querySelectorAll('.social-card-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const user = matches.find(item => item.name === btn.getAttribute('data-user'));
-                if (user) this.openSocialCard(user);
+            if (!this.currentUser || myNotesArray.length === 0) {
+                container.innerHTML = `<div class="social-hint">${this.escapeHtml(!this.currentUser ? t.guest_hint : t.no_perfume_tip)}</div>`;
+            } else {
+                container.innerHTML = '';
+            }
+
+            const matches = publicUsers.map(user => {
+                const otherNotes = Array.isArray(user.publicNoteSummary) ? user.publicNoteSummary : [];
+                const otherSet = new Set(otherNotes);
+                const intersection = myNotesArray.filter(x => otherSet.has(x));
+                const union = new Set([...myNotesArray, ...otherNotes]);
+                const score = canScoreMatches && union.size > 0 ? Math.round((intersection.length / union.size) * 100) : null;
+                return { ...user, score, common: intersection, publicScentCount: otherNotes.length };
+            }).sort((a, b) => {
+                if (canScoreMatches && a.score !== b.score) return (b.score || 0) - (a.score || 0);
+                return (b.publicPerfumeCount || 0) - (a.publicPerfumeCount || 0);
             });
-        });
+
+            matches.forEach(m => {
+                const el = document.createElement('div');
+                el.className = 'match-card';
+                const commonStr = m.common.map(n => isEn ? (SCENT_TRANSLATIONS[n] || n) : n).join(", ");
+                const avatar = this.auth.renderAvatarMarkup(m.photoURL, m.name, 'match-avatar-img', 'match-avatar');
+                const badges = [
+                    m.publicCollectionEnabled ? `<span class="social-badge">${this.escapeHtml(t.public_collection)}</span>` : '',
+                    m.publicCardEnabled ? `<span class="social-badge">${this.escapeHtml(t.public_card)}</span>` : ''
+                ].join('');
+                const actions = [
+                    m.publicCollectionEnabled ? `<button class="btn-outline social-action-btn" data-action="collection" data-user="${m.uid}">${this.escapeHtml(t.view_collection)}</button>` : '',
+                    m.publicCardEnabled ? `<button class="btn-outline social-action-btn" data-action="card" data-user="${m.uid}">${this.escapeHtml(t.view_card)}</button>` : ''
+                ].join('');
+
+                el.innerHTML = `
+                    ${avatar}
+                    <div class="match-info">
+                        <div class="social-badge-row">${badges}</div>
+                        <h3 class="match-name">${this.escapeHtml(m.name)}</h3>
+                        <div class="social-public-stats">${t.public_perfumes}: ${m.publicPerfumeCount} · ${t.public_scents}: ${m.publicScentCount}</div>
+                        ${canScoreMatches ? `<div class="social-common-line">${t.common_likes}: ${this.escapeHtml(commonStr || t.no_overlap)}</div>` : ''}
+                    </div>
+                    ${canScoreMatches ? `<div class="match-score"><span class="score-val">${m.score}%</span><span class="score-label">${t.match_score}</span></div>` : ''}
+                    <div class="social-actions">${actions}</div>
+                `;
+                container.appendChild(el);
+            });
+
+            container.querySelectorAll('.social-action-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const user = matches.find(item => item.uid === btn.getAttribute('data-user'));
+                    if (!user) return;
+                    if (btn.getAttribute('data-action') === 'collection') this.openPublicCollection(user);
+                    if (btn.getAttribute('data-action') === 'card') this.openSocialCard(user);
+                });
+            });
+        } catch (error) {
+            container.innerHTML = `<div class="collection-empty">${this.escapeHtml(this.getTranslation().toast.social_load_failed)}</div>`;
+        }
+    }
+
+    escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[char]));
     }
 }
 

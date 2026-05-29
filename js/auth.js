@@ -1,4 +1,5 @@
 import { auth, isFirebaseConfigured } from './firebase-config.js';
+import { DEFAULT_VISIBILITY_SETTINGS, loadUserVisibilitySettings, saveUserVisibilitySettings } from './store.js';
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -29,7 +30,8 @@ export class AuthSystem {
         this.app = app;
         this.user = null;
         this.currentTab = 'login'; // 'login' or 'register'
-        this.profileDraft = { uid: null, nickname: '', presetId: null, customPhotoURL: null };
+        this.savedVisibilitySettings = { ...DEFAULT_VISIBILITY_SETTINGS };
+        this.profileDraft = { uid: null, nickname: '', presetId: null, customPhotoURL: null, publicCollection: false, publicCard: false };
         this.profilePresets = PROFILE_PRESET_DEFS.map(preset => ({
             ...preset,
             photoURL: this.createAvatarDataUrl(preset)
@@ -48,9 +50,11 @@ export class AuthSystem {
                 if (user) {
                     seeded = await this.ensureUserProfile(user);
                     activeUser = auth.currentUser || user;
-                    this.syncProfileDraft(activeUser, true);
+                    this.savedVisibilitySettings = await loadUserVisibilitySettings(activeUser);
+                    this.syncProfileDraft(activeUser, true, this.savedVisibilitySettings);
                 } else {
-                    this.profileDraft = { uid: null, nickname: '', presetId: null, customPhotoURL: null };
+                    this.savedVisibilitySettings = { ...DEFAULT_VISIBILITY_SETTINGS };
+                    this.profileDraft = { uid: null, nickname: '', presetId: null, customPhotoURL: null, publicCollection: false, publicCard: false };
                 }
 
                 this.user = activeUser;
@@ -179,7 +183,11 @@ export class AuthSystem {
         return presets[this.hashSeed(user?.uid || user?.email) % presets.length];
     }
 
-    syncProfileDraft(user = this.user, force = false) {
+    getSavedVisibilitySettings() {
+        return { ...this.savedVisibilitySettings };
+    }
+
+    syncProfileDraft(user = this.user, force = false, visibilitySettings = this.savedVisibilitySettings) {
         if (!user) return;
         if (force || this.profileDraft.uid !== user.uid) {
             const preset = this.getPresetByPhotoURL(user.photoURL) || this.pickDefaultPreset(user);
@@ -187,7 +195,9 @@ export class AuthSystem {
                 uid: user.uid,
                 nickname: this.displayName(user),
                 presetId: this.getPresetByPhotoURL(user.photoURL) ? preset.id : null,
-                customPhotoURL: this.getPresetByPhotoURL(user.photoURL) ? null : (user.photoURL || null)
+                customPhotoURL: this.getPresetByPhotoURL(user.photoURL) ? null : (user.photoURL || null),
+                publicCollection: !!visibilitySettings.publicCollection,
+                publicCard: !!visibilitySettings.publicCard
             };
         }
     }
@@ -438,6 +448,10 @@ export class AuthSystem {
 
         const photoURL = this.getDraftPhotoURL();
         const activeUser = auth.currentUser || this.user;
+        const visibilitySettings = {
+            publicCollection: !!this.profileDraft.publicCollection,
+            publicCard: !!this.profileDraft.publicCard
+        };
         const saveButton = document.getElementById('btn-profile-save');
         if (saveButton) saveButton.disabled = true;
 
@@ -446,12 +460,14 @@ export class AuthSystem {
                 displayName: nickname,
                 photoURL
             });
+            this.savedVisibilitySettings = await saveUserVisibilitySettings(activeUser, visibilitySettings, this.app.state.myPerfumes);
             this.user = auth.currentUser || activeUser;
             this.app.currentUser = this.user;
-            this.syncProfileDraft(this.user, true);
+            this.syncProfileDraft(this.user, true, this.savedVisibilitySettings);
             this.updateUserNav();
             this.renderProfileView(true);
             if (this.app.state.currentView === 'card') this.app.viz.renderCard();
+            if (this.app.state.currentView === 'social') this.app.renderSocial();
             this.app.showToast(t.toast.profile_saved, 'success');
         } catch (error) {
             this.app.showToast(t.profile.save_error, 'error');
@@ -476,6 +492,8 @@ export class AuthSystem {
         const nickname = this.profileDraft.nickname || this.displayName(this.user);
         const activePhotoURL = this.getDraftPhotoURL();
         const isCustomAvatar = !!this.profileDraft.customPhotoURL;
+        const visibilityCollectionText = this.profileDraft.publicCollection ? t.visibility_public : t.visibility_private;
+        const visibilityCardText = this.profileDraft.publicCard ? t.visibility_public : t.visibility_private;
         const uniqueNotes = new Set();
         this.app.state.myPerfumes.forEach(perfume => {
             perfume.notes.top.forEach(note => uniqueNotes.add(note));
@@ -516,6 +534,13 @@ export class AuthSystem {
                 </div>
 
                 <div class="profile-form-card">
+                    <div class="profile-visibility-banner">
+                        <div class="profile-visibility-banner-title">${this.escapeHtml(t.visibility_status_title)}</div>
+                        <div class="profile-visibility-banner-badges">
+                            <span class="profile-status-pill${this.profileDraft.publicCollection ? ' active' : ''}">${this.escapeHtml(t.public_collection_label)}: ${this.escapeHtml(visibilityCollectionText)}</span>
+                            <span class="profile-status-pill${this.profileDraft.publicCard ? ' active' : ''}">${this.escapeHtml(t.public_card_label)}: ${this.escapeHtml(visibilityCardText)}</span>
+                        </div>
+                    </div>
                     <div class="profile-field">
                         <label class="form-label" for="input-profile-name">${this.escapeHtml(t.nickname_label)}</label>
                         <input
@@ -556,6 +581,32 @@ export class AuthSystem {
                                 <label class="btn-secondary profile-upload-btn" for="input-profile-avatar-file">${this.escapeHtml(isCustomAvatar ? t.upload_replace_btn : t.upload_btn)}</label>
                                 <input type="file" id="input-profile-avatar-file" accept="image/png,image/jpeg,image/webp" hidden>
                             </div>
+                        </div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="profile-section-head">
+                            <div>
+                                <div class="profile-section-title">${this.escapeHtml(t.visibility_title)}</div>
+                                <div class="profile-section-hint">${this.escapeHtml(t.visibility_hint)}</div>
+                            </div>
+                        </div>
+                        <div class="profile-visibility-grid">
+                            <label class="profile-toggle-card">
+                                <div class="profile-toggle-copy">
+                                    <div class="profile-toggle-title">${this.escapeHtml(t.public_collection_label)}</div>
+                                    <div class="profile-toggle-hint">${this.escapeHtml(t.public_collection_hint)}</div>
+                                </div>
+                                <input type="checkbox" class="profile-toggle-input" id="input-public-collection"${this.profileDraft.publicCollection ? ' checked' : ''}>
+                                <span class="profile-toggle-slider"></span>
+                            </label>
+                            <label class="profile-toggle-card">
+                                <div class="profile-toggle-copy">
+                                    <div class="profile-toggle-title">${this.escapeHtml(t.public_card_label)}</div>
+                                    <div class="profile-toggle-hint">${this.escapeHtml(t.public_card_hint)}</div>
+                                </div>
+                                <input type="checkbox" class="profile-toggle-input" id="input-public-card"${this.profileDraft.publicCard ? ' checked' : ''}>
+                                <span class="profile-toggle-slider"></span>
+                            </label>
                         </div>
                     </div>
                     <div class="profile-field">
@@ -609,6 +660,12 @@ export class AuthSystem {
         });
         document.getElementById('input-profile-avatar-file').addEventListener('change', (event) => this.handleCustomAvatarChange(event));
         document.getElementById('btn-profile-random').addEventListener('click', () => this.randomizeProfileDraft());
+        document.getElementById('input-public-collection').addEventListener('change', (event) => {
+            this.profileDraft = { ...this.profileDraft, publicCollection: event.target.checked };
+        });
+        document.getElementById('input-public-card').addEventListener('change', (event) => {
+            this.profileDraft = { ...this.profileDraft, publicCard: event.target.checked };
+        });
         if (document.getElementById('btn-profile-send-verify')) {
             document.getElementById('btn-profile-send-verify').addEventListener('click', async () => {
                 try {
