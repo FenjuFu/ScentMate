@@ -178,6 +178,7 @@ export class ScentVisualization {
                 : (ownerName ? `${ownerName} · ${t.explorer}` : t.explorer));
             document.getElementById('card-user-title').textContent = emptyTitle;
             document.getElementById('card-poetic-quote').textContent = `“${customQuote || t.default_quote}”`;
+            this.renderMusicRecommendation(currentCard, fallbackIdentity);
             return;
         }
         
@@ -187,6 +188,31 @@ export class ScentVisualization {
 
         document.getElementById('card-user-title').textContent = title;
         document.getElementById('card-poetic-quote').textContent = `“${quote}”`;
+        this.renderMusicRecommendation(currentCard, fallbackIdentity);
+    }
+
+    renderMusicRecommendation(currentCard, fallbackIdentity) {
+        const t = this.app.getTranslation().card;
+        const musicTitle = currentCard?.musicTitle || fallbackIdentity.musicTitle || '';
+        const musicComposer = currentCard?.musicComposer || fallbackIdentity.musicComposer || '';
+        const musicReason = currentCard?.musicReason || fallbackIdentity.musicReason || '';
+        const musicUrl = currentCard?.musicUrl || fallbackIdentity.musicUrl || '';
+
+        document.getElementById('card-music-title').textContent = musicTitle || t.music_fallback_title;
+        document.getElementById('card-music-composer').textContent = musicComposer || '';
+        document.getElementById('card-music-reason').textContent = musicReason || t.music_fallback_reason;
+
+        const link = document.getElementById('card-music-link');
+        if (!link) return;
+        if (musicUrl) {
+            link.href = musicUrl;
+            link.textContent = t.music_link;
+            link.style.display = 'inline-flex';
+        } else {
+            link.removeAttribute('href');
+            link.textContent = '';
+            link.style.display = 'none';
+        }
     }
 
     generatePairingDesc(s, t) {

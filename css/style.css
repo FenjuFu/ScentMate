@@ -851,6 +851,48 @@ main {
     border-left: 3px solid #eee;
     padding-left: 15px;
 }
+.music-card-block {
+    margin-bottom: 28px;
+    padding: 18px 18px 16px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #fffaf7, #fff);
+    border: 1px solid #f0e3db;
+}
+.music-card-kicker {
+    font-size: 11px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: #a77860;
+    margin-bottom: 8px;
+}
+.music-card-title {
+    font-family: var(--brand-font-serif);
+    font-size: 20px;
+    color: var(--brand-dark);
+    line-height: 1.3;
+}
+.music-card-composer {
+    margin-top: 6px;
+    font-size: 13px;
+    color: #8a7c73;
+}
+.music-card-reason {
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #5f564f;
+}
+.music-card-link {
+    display: inline-flex;
+    margin-top: 14px;
+    color: var(--brand-orange);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+}
+.music-card-link:hover {
+    text-decoration: underline;
+}
 .analysis-section h3 {
     font-size: 14px;
     text-transform: uppercase;

@@ -46,6 +46,11 @@ export function createCollection(collection = {}, defaultSettings = DEFAULT_VISI
         publicCardEnabled: 'publicCardEnabled' in collection ? !!collection.publicCardEnabled : normalizedDefaults.publicCard,
         cardTitle: String(collection.cardTitle || '').trim(),
         cardQuote: String(collection.cardQuote || '').trim(),
+        musicId: String(collection.musicId || '').trim(),
+        musicTitle: String(collection.musicTitle || '').trim(),
+        musicComposer: String(collection.musicComposer || '').trim(),
+        musicUrl: String(collection.musicUrl || '').trim(),
+        musicReason: String(collection.musicReason || '').trim(),
         createdAt: collection.createdAt || new Date().toISOString(),
         updatedAt: collection.updatedAt || new Date().toISOString()
     };
@@ -119,6 +124,11 @@ function buildPublicCollectionFields(collectionData) {
         publicCardPerfumes: collection.publicCardEnabled ? cloneValue(collection.perfumes) : [],
         cardTitle: collection.cardTitle || '',
         cardQuote: collection.cardQuote || '',
+        musicId: collection.musicId || '',
+        musicTitle: collection.musicTitle || '',
+        musicComposer: collection.musicComposer || '',
+        musicUrl: collection.musicUrl || '',
+        musicReason: collection.musicReason || '',
         updatedAt: collection.updatedAt
     };
 }
@@ -255,6 +265,11 @@ export async function loadPublicUsers(currentUser = null) {
             publicCardPerfumes: Array.isArray(entry.publicCardPerfumes) ? entry.publicCardPerfumes : [],
             cardTitle: entry.cardTitle || '',
             cardQuote: entry.cardQuote || '',
+            musicId: entry.musicId || '',
+            musicTitle: entry.musicTitle || '',
+            musicComposer: entry.musicComposer || '',
+            musicUrl: entry.musicUrl || '',
+            musicReason: entry.musicReason || '',
             updatedAt: entry.updatedAt || ''
         }));
     });

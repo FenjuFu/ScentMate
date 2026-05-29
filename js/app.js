@@ -413,6 +413,7 @@ class ScentMateApp {
 
         const collections = this.getOwnedCollections();
         const cardsReady = !!(activeOwnedCollection?.cardTitle || activeOwnedCollection?.cardQuote);
+        const musicReady = !!(activeOwnedCollection?.musicTitle && activeOwnedCollection?.musicUrl);
         const tabs = collections.map((item) => `
             <button class="collection-folder-tab${item.id === this.state.activeCollectionId ? ' active' : ''}" type="button" data-collection-id="${item.id}">
                 <span class="collection-folder-icon">▣</span>
@@ -430,7 +431,7 @@ class ScentMateApp {
                     <div class="collection-toolbar-group">
                         <button class="btn-secondary collection-small-btn" id="btn-collection-rename" type="button">${isEn ? 'Rename' : '重命名'}</button>
                         <button class="btn-secondary collection-small-btn" id="btn-collection-delete" type="button">${isEn ? 'Delete' : '删除'}</button>
-                        <button class="btn-secondary collection-small-btn" id="btn-collection-ai" type="button">${isEn ? 'AI name + card' : 'AI 命名与卡片'}</button>
+                        <button class="btn-secondary collection-small-btn" id="btn-collection-ai" type="button">${isEn ? 'AI name + card + music' : 'AI 命名、卡片与音乐'}</button>
                         <button class="btn-secondary collection-small-btn" id="btn-collection-view-card" type="button">${isEn ? 'Open card' : '查看名片'}</button>
                     </div>
                     <div class="collection-toolbar-group">
@@ -441,6 +442,7 @@ class ScentMateApp {
                 <div class="collection-meta-row">
                     <span class="collection-status-chip">${this.escapeHtml(cardsReady ? (isEn ? 'Card ready' : '已生成专属卡片') : (isEn ? 'Using rule-based card' : '当前使用规则生成卡片'))}</span>
                     ${activeOwnedCollection?.cardTitle ? `<span class="collection-status-chip active">${this.escapeHtml(activeOwnedCollection.cardTitle)}</span>` : ''}
+                    ${musicReady ? `<span class="collection-status-chip active">${this.escapeHtml(activeOwnedCollection.musicTitle)}</span>` : ''}
                 </div>
             </div>
         `;
@@ -542,29 +544,39 @@ class ScentMateApp {
         }
 
         const isEn = this.state.currentLang === 'en';
-        this.showToast(isEn ? 'Generating collection identity...' : '正在生成收藏夹名字与气味名片...', 'info');
+        this.showToast(isEn ? 'Generating collection identity and soundtrack...' : '正在生成收藏夹名字、气味名片与古典音乐...', 'info');
         try {
             const identity = await generateCollectionIdentity(activeCollection, this.state.currentLang);
             this.updateActiveCollection((item) => ({
                 ...item,
                 name: identity.name,
                 cardTitle: identity.cardTitle,
-                cardQuote: identity.cardQuote
+                cardQuote: identity.cardQuote,
+                musicId: identity.musicId,
+                musicTitle: identity.musicTitle,
+                musicComposer: identity.musicComposer,
+                musicUrl: identity.musicUrl,
+                musicReason: identity.musicReason
             }));
             this.renderPerfumeList();
             if (this.state.currentView === 'card') this.viz.renderCard();
             this.persist();
             this.showToast(identity.source === 'ai'
-                ? (isEn ? 'AI identity generated' : '已生成 AI 收藏夹名与气味名片')
-                : (isEn ? 'Using fallback naming' : 'AI 不可用，已使用回退命名'), 'success');
+                ? (isEn ? 'AI identity and music generated' : '已生成 AI 收藏夹名、气味名片与古典音乐')
+                : (isEn ? 'Using fallback identity and music' : 'AI 不可用，已使用回退文案与音乐'), 'success');
         } catch (error) {
-            this.showToast(isEn ? 'AI request failed, using fallback naming' : 'AI 请求失败，已使用回退命名', 'info');
+            this.showToast(isEn ? 'AI request failed, using fallback identity and music' : 'AI 请求失败，已使用回退文案与音乐', 'info');
             const identity = buildFallbackIdentity(activeCollection, this.state.currentLang);
             this.updateActiveCollection((item) => ({
                 ...item,
                 name: identity.name,
                 cardTitle: identity.cardTitle,
-                cardQuote: identity.cardQuote
+                cardQuote: identity.cardQuote,
+                musicId: identity.musicId,
+                musicTitle: identity.musicTitle,
+                musicComposer: identity.musicComposer,
+                musicUrl: identity.musicUrl,
+                musicReason: identity.musicReason
             }));
             this.renderPerfumeList();
             if (this.state.currentView === 'card') this.viz.renderCard();

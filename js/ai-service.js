@@ -138,6 +138,89 @@ const REVIEW_SCENES = {
     }
 };
 
+const CLASSICAL_MUSIC_LIBRARY = [
+    {
+        id: 'satie-gymnopedie-1',
+        title: 'Gymnopédie No. 1',
+        composer: 'Erik Satie',
+        url: 'https://en.wikipedia.org/wiki/Gymnop%C3%A9dies',
+        profiles: ['草本', '绿叶', '花香'],
+        keywords: ['清透', '解压', '微凉', '安静', '线性', 'green', 'calm', 'airy', 'cool', 'quiet']
+    },
+    {
+        id: 'debussy-clair-de-lune',
+        title: 'Clair de lune',
+        composer: 'Claude Debussy',
+        url: 'https://en.wikipedia.org/wiki/Suite_bergamasque#3._Clair_de_lune',
+        profiles: ['花香', '树脂', '动物'],
+        keywords: ['月光', '静奢', '柔光', '粉感', '贴肤', 'moonlit', 'soft', 'powdery', 'quiet luxury']
+    },
+    {
+        id: 'debussy-faun',
+        title: "Prélude à l'après-midi d'un faune",
+        composer: 'Claude Debussy',
+        url: 'https://en.wikipedia.org/wiki/Pr%C3%A9lude_%C3%A0_l%27apr%C3%A8s-midi_d%27un_faune',
+        profiles: ['绿叶', '花香', '果香'],
+        keywords: ['植物感', '空气感', '流动', '轻盈', '朦胧', 'floral', 'green', 'fluid', 'hazy']
+    },
+    {
+        id: 'ravel-pavane',
+        title: 'Pavane pour une infante défunte',
+        composer: 'Maurice Ravel',
+        url: 'https://en.wikipedia.org/wiki/Pavane_pour_une_infante_d%C3%A9funte',
+        profiles: ['花香', '动物', '木质'],
+        keywords: ['古典', '克制', '优雅', '粉感', '沉静', 'elegant', 'restrained', 'classic', 'poised']
+    },
+    {
+        id: 'faure-sicilienne',
+        title: 'Sicilienne, Op. 78',
+        composer: 'Gabriel Faure',
+        url: 'https://en.wikipedia.org/wiki/Sicilienne_(Faur%C3%A9)',
+        profiles: ['花香', '果香', '草本'],
+        keywords: ['明亮', '轻快', '柔和', '花果', '清新', 'bright', 'graceful', 'light', 'fresh']
+    },
+    {
+        id: 'bach-air',
+        title: 'Air',
+        composer: 'J. S. Bach',
+        url: 'https://en.wikipedia.org/wiki/Orchestral_Suite_No._3_(Bach)#Air',
+        profiles: ['木质', '树脂', '花香'],
+        keywords: ['干净', '平衡', '纯净', '秩序', '安宁', 'clean', 'balanced', 'pure', 'serene']
+    },
+    {
+        id: 'satie-gnossienne-1',
+        title: 'Gnossienne No. 1',
+        composer: 'Erik Satie',
+        url: 'https://en.wikipedia.org/wiki/Gnossiennes',
+        profiles: ['树脂', '木质', '动物'],
+        keywords: ['苦甜', '神秘', '药感', '阴影', '内省', 'bitter', 'mysterious', 'shadowy', 'introspective']
+    },
+    {
+        id: 'debussy-la-mer',
+        title: 'La mer',
+        composer: 'Claude Debussy',
+        url: 'https://en.wikipedia.org/wiki/La_mer_(Debussy)',
+        profiles: ['果香', '绿叶', '树脂'],
+        keywords: ['海风', '矿物感', '盐感', '流动', '通透', 'sea', 'mineral', 'salty', 'transparent']
+    },
+    {
+        id: 'ravel-une-barque',
+        title: "Une barque sur l'ocean",
+        composer: 'Maurice Ravel',
+        url: 'https://en.wikipedia.org/wiki/Miroirs_(Ravel)#Une_barque_sur_l%27oc%C3%A9an',
+        profiles: ['果香', '树脂', '花香'],
+        keywords: ['水感', '波光', '漂浮', '海洋', '轻晃', 'watery', 'shimmering', 'floating', 'ocean']
+    },
+    {
+        id: 'vivaldi-spring',
+        title: 'Spring',
+        composer: 'Antonio Vivaldi',
+        url: 'https://en.wikipedia.org/wiki/The_Four_Seasons_(Vivaldi)',
+        profiles: ['绿叶', '花香', '果香'],
+        keywords: ['生机', '明媚', '鲜活', '发芽', '晴朗', 'spring', 'alive', 'fresh', 'radiant']
+    }
+];
+
 function compactList(items = [], limit = 12) {
     return Array.from(new Set(items)).slice(0, limit);
 }
@@ -204,6 +287,37 @@ function sanitizeField(value, fallbackValue, lang = 'zh') {
     return text;
 }
 
+function getMusicById(id) {
+    return CLASSICAL_MUSIC_LIBRARY.find(item => item.id === id) || null;
+}
+
+function chooseMusicFallback(topSoulScents, impressionKeywords, lang = 'zh') {
+    const profileWeights = topSoulScents.map((item, index) => ({
+        profile: item.profile,
+        weight: Math.max(1, 4 - index)
+    }));
+
+    let best = CLASSICAL_MUSIC_LIBRARY[0];
+    let bestScore = -1;
+
+    CLASSICAL_MUSIC_LIBRARY.forEach((piece) => {
+        let score = 0;
+        profileWeights.forEach(({ profile, weight }) => {
+            if (piece.profiles.includes(profile)) score += weight * 3;
+        });
+        impressionKeywords.forEach((keyword) => {
+            if (piece.keywords.some((item) => item.toLowerCase() === String(keyword).toLowerCase())) score += 2;
+            else if (piece.keywords.some((item) => item.toLowerCase().includes(String(keyword).toLowerCase()))) score += 1;
+        });
+        if (score > bestScore) {
+            best = piece;
+            bestScore = score;
+        }
+    });
+
+    return best;
+}
+
 function buildReviewFallback(topSoulScents, impressionKeywords, lang = 'zh') {
     const scenes = REVIEW_SCENES[lang] || REVIEW_SCENES.zh;
     const displayedSoulScents = formatDisplayedSoulScents(topSoulScents, lang);
@@ -228,6 +342,19 @@ function buildReviewFallback(topSoulScents, impressionKeywords, lang = 'zh') {
     };
 }
 
+function buildMusicReasonFallback(piece, topSoulScents, impressionKeywords, lang = 'zh') {
+    const displayedSoulScents = formatDisplayedSoulScents(topSoulScents, lang);
+    const first = displayedSoulScents[0] || (lang === 'en' ? 'green air' : '绿意');
+    const second = displayedSoulScents[1] || (lang === 'en' ? 'tea air' : '茶气');
+    const moodText = impressionKeywords.slice(0, 2).join(lang === 'en' ? ' and ' : '、');
+
+    if (lang === 'en') {
+        return `${piece.title} fits this card because it carries the same ${moodText || 'quiet'} restraint, opening with ${first.toLowerCase()} and settling into a more skin-close sense of ${second.toLowerCase()}.`;
+    }
+
+    return `${piece.title} 很适合这张卡片，因为它和这组气味一样带着${moodText || '克制的安静'}，从 ${first} 的开场慢慢过渡到更贴肤的 ${second} 气息。`;
+}
+
 function extractJson(text) {
     if (!text) return null;
     const start = text.indexOf('{');
@@ -244,11 +371,17 @@ export function buildFallbackIdentity(collection, lang = 'zh') {
     const topSoulScents = computeTopSoulScents(collection);
     const impressionKeywords = buildImpressionKeywords(topSoulScents, lang);
     const reviewFallback = buildReviewFallback(topSoulScents, impressionKeywords, lang);
+    const musicFallback = chooseMusicFallback(topSoulScents, impressionKeywords, lang);
 
     return {
         name: reviewFallback.name,
         cardTitle: reviewFallback.cardTitle,
         cardQuote: reviewFallback.cardQuote,
+        musicId: musicFallback.id,
+        musicTitle: musicFallback.title,
+        musicComposer: musicFallback.composer,
+        musicUrl: musicFallback.url,
+        musicReason: buildMusicReasonFallback(musicFallback, topSoulScents, impressionKeywords, lang),
         source: 'fallback'
     };
 }
@@ -266,8 +399,8 @@ export async function generateCollectionIdentity(collection, lang = 'zh') {
             {
                 role: 'system',
                 content: lang === 'en'
-                    ? 'You are a perfume editor, not an ad copywriter. Write like a refined short fragrance review: restrained, tactile, atmospheric, and specific. Base the output on the mood, texture, and movement created by the top 3 soul notes, not on ingredient listing. Return JSON only with keys: name, cardTitle, cardQuote.'
-                    : '你是香水编辑，不是广告文案生成器。请写得像一则克制、细腻、有质地的短香评：先有整体氛围，再写气味如何流动。命名必须优先依据“灵魂香调 Top 3”形成的气质、质地和人物气场，而不是机械拼接香材名。请只返回 JSON，包含 name、cardTitle、cardQuote 三个字段。'
+                    ? 'You are a perfume editor, not an ad copywriter. Write like a refined short fragrance review: restrained, tactile, atmospheric, and specific. Base the output on the mood, texture, and movement created by the top 3 soul notes, not on ingredient listing. Also choose one classical music work from the provided catalog that best matches the card mood. Return JSON only with keys: name, cardTitle, cardQuote, musicId, musicReason.'
+                    : '你是香水编辑，不是广告文案生成器。请写得像一则克制、细腻、有质地的短香评：先有整体氛围，再写气味如何流动。命名必须优先依据“灵魂香调 Top 3”形成的气质、质地和人物气场，而不是机械拼接香材名。还要从提供的古典音乐作品库里挑一首最贴合这张气味名片气质的作品。请只返回 JSON，包含 name、cardTitle、cardQuote、musicId、musicReason 五个字段。'
             },
             {
                 role: 'user',
@@ -283,18 +416,29 @@ export async function generateCollectionIdentity(collection, lang = 'zh') {
                         profile: item.profile
                     })),
                     impressionKeywords,
+                    musicCatalog: CLASSICAL_MUSIC_LIBRARY.map((item) => ({
+                        id: item.id,
+                        title: item.title,
+                        composer: item.composer,
+                        profiles: item.profiles,
+                        keywords: item.keywords
+                    })),
                     styleGuide,
                     perfumeCount: perfumeNames.length,
                     constraints: lang === 'en'
                         ? {
                             name: '2-4 words, elegant and memorable, more like an editorial title than a product name',
                             cardTitle: '4-10 words, reads like the title of a short perfume review, not a template',
-                            cardQuote: '1 sentence, 18-36 words, describe the scent movement and texture with imagery'
+                            cardQuote: '1 sentence, 18-36 words, describe the scent movement and texture with imagery',
+                            musicId: 'must be one id from musicCatalog',
+                            musicReason: '1 sentence, explain why the music matches the scent mood'
                         }
                         : {
                             name: '2-6 个字，要像真正有人会取的收藏夹标题，克制、有记忆点，不要像功能名',
                             cardTitle: '4-10 个字，要像短香评标题，不要出现“气味名片”四个字',
-                            cardQuote: '1 句话，28-48 个字，写气味的流动、质地和停留方式，不要空泛总结'
+                            cardQuote: '1 句话，28-48 个字，写气味的流动、质地和停留方式，不要空泛总结',
+                            musicId: '必须是 musicCatalog 里的某个 id',
+                            musicReason: '1 句话，解释这首古典音乐和这张卡片为什么气质相合'
                         }
                 })
             }
@@ -320,10 +464,17 @@ export async function generateCollectionIdentity(collection, lang = 'zh') {
         throw new Error('ai-invalid-json');
     }
 
+    const chosenMusic = getMusicById(String(parsed.musicId || '')) || getMusicById(fallback.musicId) || chooseMusicFallback(topSoulScents, impressionKeywords, lang);
+
     return {
         name: sanitizeField(parsed.name, fallback.name, lang),
         cardTitle: sanitizeField(parsed.cardTitle, fallback.cardTitle, lang),
         cardQuote: sanitizeField(parsed.cardQuote, fallback.cardQuote, lang),
+        musicId: chosenMusic.id,
+        musicTitle: chosenMusic.title,
+        musicComposer: chosenMusic.composer,
+        musicUrl: chosenMusic.url,
+        musicReason: sanitizeField(parsed.musicReason, fallback.musicReason, lang),
         source: 'ai'
     };
 }
