@@ -42,7 +42,8 @@ const DEFAULT_PERFUMES = [
     { id: 36, name: "White Tea 白茶", brand: "SABON", notes: { top: ["无花果", "柠檬", "茉莉"], middle: ["白茶", "小豆蔻", "肉豆蔻"], base: ["紫罗兰", "雪松", "百里香"] } },
     { id: 37, name: "Spearmint 绿薄荷", brand: "handhandhand 叁手", notes: { top: ["艾草", "薄荷", "留兰香"], middle: ["薰衣草", "尤加利", "布枯叶", "广藿香"], base: ["雪松", "檀香", "琥珀"] } },
     { id: 38, name: "Bottega Floral 花卉小铺", brand: "MARMAR;D", notes: { top: ["绿叶", "柠檬", "草本"], middle: ["玫瑰", "茉莉", "栀子花"], base: ["木质香", "依兰"] } },
-    { id: 39, name: "Thays 泰斯", brand: "Fueguia 1833", notes: { top: [], middle: ["马黛花", "绿茶", "柠檬", "木兰", "安息香", "丁香", "豆蔻", "葡萄柚"], base: [] } }
+    { id: 39, name: "Thays 泰斯", brand: "Fueguia 1833", notes: { top: [], middle: ["马黛花", "绿茶", "柠檬", "木兰", "安息香", "丁香", "豆蔻", "葡萄柚"], base: [] } },
+    { id: 40, name: "玉香 Formosa Beau-Tea", brand: "P.Seven 奉茶系列", notes: { top: ["清新香槟果香"], middle: ["东方美人茶"], base: ["丝绒麝香"] } }
 ];
 
 class ScentMateApp {
