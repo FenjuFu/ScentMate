@@ -1,5 +1,4 @@
 import { SCENT_TRANSLATIONS } from './data.js';
-import { aiConfig, isAIConfigured } from './ai-config.js';
 
 function compactList(items = [], limit = 12) {
     return Array.from(new Set(items)).slice(0, limit);
@@ -52,12 +51,9 @@ export function buildFallbackIdentity(collection, lang = 'zh') {
 
 export async function generateCollectionIdentity(collection, lang = 'zh') {
     const fallback = buildFallbackIdentity(collection, lang);
-    if (!isAIConfigured) return fallback;
-
     const perfumeNames = (collection?.perfumes || []).map(item => item.name).slice(0, 12);
     const notes = collectNotes(collection);
     const payload = {
-        model: aiConfig.model,
         temperature: 0.9,
         messages: [
             {
@@ -90,11 +86,10 @@ export async function generateCollectionIdentity(collection, lang = 'zh') {
         ]
     };
 
-    const response = await fetch(`${aiConfig.baseURL.replace(/\/$/, '')}/chat/completions`, {
+    const response = await fetch('/api/ai', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${aiConfig.apiKey}`
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
     });
