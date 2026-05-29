@@ -29,32 +29,112 @@ const PROFILE_FEELINGS = {
     }
 };
 
-const PROFILE_NAME_PARTS = {
+const STYLE_CONSTRAINTS = {
     zh: {
-        "木质": ["林间", "静默"],
-        "花香": ["柔光", "花信"],
-        "柑橘": ["晨光", "晴息"],
-        "辛辣": ["余温", "微火"],
-        "美食": ["暖甜", "余甜"],
-        "草本": ["青野", "风息"],
-        "果香": ["果雾", "轻漾"],
-        "树脂": ["琥珀", "回响"],
-        "动物": ["夜绒", "贴肤"],
-        "绿叶": ["青影", "雨痕"],
-        "其他": ["微尘", "回声"]
+        positive: [
+            "先写整体氛围，再写气味如何流动",
+            "多写质地、空气感、温度、植物感、茶感、贴肤感",
+            "像香水编辑写的短香评，克制、细腻、有画面",
+            "可以有一点人物气场，但不要浮夸"
+        ],
+        negative: [
+            "不要机械罗列香材",
+            "不要写“这组灵魂香调传递出……”",
+            "不要写“XX的气味名片”",
+            "不要写“高级感、氛围感、温柔治愈”这种空泛套话",
+            "不要写“像一位……”这种土味拟人",
+            "不要像广告 slogan"
+        ],
+        examples: [
+            {
+                mood: "清透、自然、解压的绿意，线性茶感，微凉植物气息",
+                output: {
+                    name: "不焦绿",
+                    cardTitle: "一口微凉的绿意",
+                    cardQuote: "像刚修剪过的潮湿草坪，绿叶与淡茶气一路铺开，最后停在干净、安静的呼吸里。"
+                }
+            },
+            {
+                mood: "轻盈果香与花香交织，尾端有清透的海洋矿物感",
+                output: {
+                    name: "果雾轻潮",
+                    cardTitle: "明亮果香里的海风",
+                    cardQuote: "前段是酸甜多汁的果气，中段慢慢透出干净花香，最后落在带一点盐感的清透尾韵里。"
+                }
+            }
+        ]
     },
     en: {
-        "木质": ["Forest", "Hush"],
-        "花香": ["Bloom", "Glow"],
-        "柑橘": ["Sunlit", "Zest"],
-        "辛辣": ["Ember", "Spice"],
-        "美食": ["Velvet", "Honey"],
-        "草本": ["Verdant", "Breeze"],
-        "果香": ["Lilt", "Mist"],
-        "树脂": ["Amber", "Echo"],
-        "动物": ["Velvet", "Noir"],
-        "绿叶": ["Moss", "Dew"],
-        "其他": ["Halo", "Whisper"]
+        positive: [
+            "Start from the overall aura, then describe the way the scent moves",
+            "Write with texture, air, temperature, tea-like clarity, skin-like softness",
+            "Sound like a short perfume review, not an ad line"
+        ],
+        negative: [
+            "Do not mechanically list ingredients",
+            "Do not write generic phrases like luxury vibe or healing energy",
+            "Do not write like a slogan"
+        ],
+        examples: [
+            {
+                mood: "cool green clarity, linear tea-like freshness, calm and airy",
+                output: {
+                    name: "Quiet Green",
+                    cardTitle: "A Cool Breath of Green",
+                    cardQuote: "It opens like wet grass and crushed leaves, then settles into a clean tea hush that stays close to the skin."
+                }
+            }
+        ]
+    }
+};
+
+const STYLE_BLOCKLIST = {
+    zh: [
+        /气味名片/g,
+        /传递出/g,
+        /高级感/g,
+        /氛围感/g,
+        /温柔治愈/g,
+        /像一位/g,
+        /这组灵魂香调/g,
+        /收藏夹/g
+    ],
+    en: [
+        /scent card/gi,
+        /luxury vibe/gi,
+        /healing/gi,
+        /like a .*person/gi,
+        /this collection conveys/gi,
+        /collection name/gi
+    ]
+};
+
+const REVIEW_SCENES = {
+    zh: {
+        "木质": { title: "林间静气", opening: "开场偏安静，像干净木纹里慢慢透出的凉意", heart: "中段更沉着，带一点树影与空气感", finish: "最后收成贴肤、克制的木质余韵" },
+        "花香": { title: "柔光花影", opening: "前段是轻而薄的花气，不甜，也不过分张扬", heart: "中段慢慢舒展开，像光线落在花瓣背面", finish: "最后留下干净、柔和的花香薄雾" },
+        "柑橘": { title: "晨光果息", opening: "一开始很明亮，像被果皮汁水轻轻擦过空气", heart: "中段依旧轻快，但轮廓变得更干净", finish: "最后停在清爽、透气的尾韵里" },
+        "辛辣": { title: "微火香尘", opening: "开场带一点热度，不厚重，像香料刚刚被捻开", heart: "中段开始发光，气息更有张力", finish: "最后留下克制但持续的暖意" },
+        "美食": { title: "暖甜余温", opening: "前段有柔软的甜感，但不腻，像温热空气里的奶香与点心气", heart: "中段逐渐变得绵密、安静", finish: "最后留下一层低饱和度的暖甜" },
+        "草本": { title: "微凉绿息", opening: "开场像刚折开的草叶和茶梗，带一点微凉的清苦", heart: "中段很线性，像绿意一路铺开", finish: "最后停在干净、安静的植物气息里" },
+        "果香": { title: "果雾轻漾", opening: "前段有酸甜多汁的果气，轻盈而明亮", heart: "中段慢慢变得通透，不会黏腻", finish: "最后只剩一点带水感的果香回声" },
+        "树脂": { title: "琥珀回响", opening: "开场是安静的暖意，不张扬，却有厚度", heart: "中段像树脂在体温里慢慢化开", finish: "最后留下低调而绵长的回响" },
+        "动物": { title: "夜绒贴肤", opening: "前段贴肤而安静，像布料与体温之间的摩擦", heart: "中段更柔滑，也更有亲密感", finish: "最后沉到一层干净、丝绒感的尾韵里" },
+        "绿叶": { title: "雨后青影", opening: "开场像潮湿草坪和被捣碎的绿叶，带一点湿润感", heart: "中段慢慢转向更轻、更清的植物气息", finish: "最后留下微凉、透气的绿意余韵" },
+        "其他": { title: "雾感余韵", opening: "开场是轻轻浮起的一层气息，不急着展开", heart: "中段轮廓慢慢清晰，却始终克制", finish: "最后停在一层干净、模糊的尾韵里" }
+    },
+    en: {
+        "木质": { title: "Quiet Grain", opening: "It opens with a cool, clean grain of wood", heart: "then settles into a steadier, shaded calm", finish: "and dries down to a restrained woody trail" },
+        "花香": { title: "Soft Bloom", opening: "It begins with a sheer floral light", heart: "then opens slowly like petals in indirect light", finish: "before fading into a clean floral haze" },
+        "柑橘": { title: "Bright Peel", opening: "It starts bright, like citrus oil brushed into the air", heart: "then stays crisp and airy through the middle", finish: "before ending in a clear, breathable trail" },
+        "辛辣": { title: "Soft Ember", opening: "It opens with a restrained heat, like spice just cracked open", heart: "then grows more vivid without turning heavy", finish: "before settling into a quiet warmth" },
+        "美食": { title: "Warm Crumb", opening: "It opens with a soft sweetness that feels warm rather than sugary", heart: "then becomes smoother and more muted", finish: "before resting in a low, comforting warmth" },
+        "草本": { title: "Cool Green", opening: "It opens like snapped stems and cool tea leaves", heart: "then stays linear and green through the middle", finish: "before settling into a clean botanical hush" },
+        "果香": { title: "Fruit Mist", opening: "It begins with a juicy brightness", heart: "then turns lighter and more transparent", finish: "before fading into a watery fruit echo" },
+        "树脂": { title: "Amber Echo", opening: "It starts with a quiet warmth that already has depth", heart: "then softens like resin melting into skin", finish: "before leaving a long, low amber trace" },
+        "动物": { title: "Skin Velvet", opening: "It opens close to the skin, soft and intimate", heart: "then grows smoother and more tactile", finish: "before ending in a clean velvety trail" },
+        "绿叶": { title: "After Rain Green", opening: "It opens like wet grass and crushed leaves", heart: "then shifts into a lighter, cleaner green air", finish: "before ending in a cool leafy trace" },
+        "其他": { title: "Hazy Trace", opening: "It opens softly, without rushing into shape", heart: "then becomes clearer while staying restrained", finish: "before resting in a clean blur of scent" }
     }
 };
 
@@ -107,6 +187,47 @@ function buildImpressionKeywords(topSoulScents, lang = 'zh') {
     return keywords.slice(0, 6);
 }
 
+function formatDisplayedSoulScents(topSoulScents, lang = 'zh') {
+    return topSoulScents.map((item) => lang === 'en'
+        ? (SCENT_TRANSLATIONS[item.note] || item.note)
+        : item.note);
+}
+
+function containsBlockedStyle(text, lang = 'zh') {
+    const rules = STYLE_BLOCKLIST[lang] || STYLE_BLOCKLIST.zh;
+    return rules.some((pattern) => pattern.test(String(text || '')));
+}
+
+function sanitizeField(value, fallbackValue, lang = 'zh') {
+    const text = String(value || '').trim();
+    if (!text || containsBlockedStyle(text, lang)) return fallbackValue;
+    return text;
+}
+
+function buildReviewFallback(topSoulScents, impressionKeywords, lang = 'zh') {
+    const scenes = REVIEW_SCENES[lang] || REVIEW_SCENES.zh;
+    const displayedSoulScents = formatDisplayedSoulScents(topSoulScents, lang);
+    const dominantProfile = topSoulScents[0]?.profile || "其他";
+    const secondaryProfile = topSoulScents[1]?.profile || dominantProfile;
+    const tertiaryProfile = topSoulScents[2]?.profile || secondaryProfile;
+    const dominantScene = scenes[dominantProfile] || scenes["其他"];
+    const secondaryScene = scenes[secondaryProfile] || scenes["其他"];
+    const tertiaryScene = scenes[tertiaryProfile] || scenes["其他"];
+    const first = displayedSoulScents[0] || (lang === 'en' ? 'green air' : '绿意');
+    const second = displayedSoulScents[1] || (lang === 'en' ? 'tea air' : '茶气');
+    const moodText = impressionKeywords.slice(0, 2).join(lang === 'en' ? ' and ' : '、');
+
+    return {
+        name: dominantScene.title,
+        cardTitle: lang === 'en'
+            ? `${dominantScene.title}, with ${second.toLowerCase()}`
+            : `${dominantScene.title}里的一点${second}`,
+        cardQuote: lang === 'en'
+            ? `${dominantScene.opening}, then leans into ${second.toLowerCase()} and a ${moodText || 'quiet'} clarity, before settling into ${tertiaryScene.finish.replace(/^and /, '')}.`
+            : `${dominantScene.opening}，随后慢慢转向${second}和${moodText || '更安静的空气感'}，最后收在${tertiaryScene.finish}里。`
+    };
+}
+
 function extractJson(text) {
     if (!text) return null;
     const start = text.indexOf('{');
@@ -120,33 +241,14 @@ function extractJson(text) {
 }
 
 export function buildFallbackIdentity(collection, lang = 'zh') {
-    const perfumes = collection?.perfumes || [];
     const topSoulScents = computeTopSoulScents(collection);
     const impressionKeywords = buildImpressionKeywords(topSoulScents, lang);
-    const dominantProfile = topSoulScents[0]?.profile || "其他";
-    const secondaryProfile = topSoulScents[1]?.profile || dominantProfile;
-    const nameParts = PROFILE_NAME_PARTS[lang] || PROFILE_NAME_PARTS.zh;
-    const dominantWords = nameParts[dominantProfile] || nameParts["其他"];
-    const secondaryWords = nameParts[secondaryProfile] || nameParts["其他"];
-    const first = topSoulScents[0]
-        ? (lang === 'en' ? (SCENT_TRANSLATIONS[topSoulScents[0].note] || topSoulScents[0].note) : topSoulScents[0].note)
-        : (lang === 'en' ? 'Scent' : '气味');
-    const second = topSoulScents[1]
-        ? (lang === 'en' ? (SCENT_TRANSLATIONS[topSoulScents[1].note] || topSoulScents[1].note) : topSoulScents[1].note)
-        : (lang === 'en' ? 'Archive' : '回声');
-    const fallbackName = lang === 'en'
-        ? `${dominantWords[0]} ${secondaryWords[1]}`
-        : `${dominantWords[0]}${secondaryWords[1]}`;
-    const feelingLine = impressionKeywords.slice(0, 3).join(lang === 'en' ? ', ' : '、');
+    const reviewFallback = buildReviewFallback(topSoulScents, impressionKeywords, lang);
 
     return {
-        name: fallbackName,
-        cardTitle: lang === 'en'
-            ? `${first} in ${feelingLine || 'a new mood'}`
-            : `${feelingLine || `${first}与${second}`}的气味名片`,
-        cardQuote: lang === 'en'
-            ? `Led by ${first}, ${second}, and the soul-note mood of ${feelingLine || 'quiet radiance'}, this collection feels intimate and memorable.`
-            : `以 ${first}、${second} 为主调，这组灵魂香调传递出${feelingLine || '难以言明'}的气质。`,
+        name: reviewFallback.name,
+        cardTitle: reviewFallback.cardTitle,
+        cardQuote: reviewFallback.cardQuote,
         source: 'fallback'
     };
 }
@@ -157,14 +259,15 @@ export async function generateCollectionIdentity(collection, lang = 'zh') {
     const notes = collectNotes(collection);
     const topSoulScents = computeTopSoulScents(collection);
     const impressionKeywords = buildImpressionKeywords(topSoulScents, lang);
+    const styleGuide = STYLE_CONSTRAINTS[lang] || STYLE_CONSTRAINTS.zh;
     const payload = {
         temperature: 0.9,
         messages: [
             {
                 role: 'system',
                 content: lang === 'en'
-                    ? 'You create poetic scent collection identities. Base naming primarily on the emotional impression conveyed by the top 3 soul notes, not by mechanically concatenating note names. Return JSON only with keys: name, cardTitle, cardQuote.'
-                    : '你是气味策展命名助手。命名必须优先依据“灵魂香调 Top 3”传递给人的感觉与气质，而不是机械拼接香材名。请只返回 JSON，包含 name、cardTitle、cardQuote 三个字段。'
+                    ? 'You are a perfume editor, not an ad copywriter. Write like a refined short fragrance review: restrained, tactile, atmospheric, and specific. Base the output on the mood, texture, and movement created by the top 3 soul notes, not on ingredient listing. Return JSON only with keys: name, cardTitle, cardQuote.'
+                    : '你是香水编辑，不是广告文案生成器。请写得像一则克制、细腻、有质地的短香评：先有整体氛围，再写气味如何流动。命名必须优先依据“灵魂香调 Top 3”形成的气质、质地和人物气场，而不是机械拼接香材名。请只返回 JSON，包含 name、cardTitle、cardQuote 三个字段。'
             },
             {
                 role: 'user',
@@ -180,17 +283,18 @@ export async function generateCollectionIdentity(collection, lang = 'zh') {
                         profile: item.profile
                     })),
                     impressionKeywords,
+                    styleGuide,
                     perfumeCount: perfumeNames.length,
                     constraints: lang === 'en'
                         ? {
-                            name: '2-6 words, poetic but readable, should express mood before ingredients',
-                            cardTitle: '4-14 words, suitable as a scent card title, based on the feeling of top soul notes',
-                            cardQuote: '1 sentence, under 40 words, capture the emotional aura of the top soul notes'
+                            name: '2-4 words, elegant and memorable, more like an editorial title than a product name',
+                            cardTitle: '4-10 words, reads like the title of a short perfume review, not a template',
+                            cardQuote: '1 sentence, 18-36 words, describe the scent movement and texture with imagery'
                         }
                         : {
-                            name: '2-6 个字，像收藏夹名字，优先写气质与感觉，不要只是罗列香材',
-                            cardTitle: '4-14 个字，适合作为气味名片标题，要体现 Top 3 灵魂香调的感觉',
-                            cardQuote: '1 句话，40 字以内，概括 Top 3 灵魂香调带来的情绪和氛围'
+                            name: '2-6 个字，要像真正有人会取的收藏夹标题，克制、有记忆点，不要像功能名',
+                            cardTitle: '4-10 个字，要像短香评标题，不要出现“气味名片”四个字',
+                            cardQuote: '1 句话，28-48 个字，写气味的流动、质地和停留方式，不要空泛总结'
                         }
                 })
             }
@@ -217,9 +321,9 @@ export async function generateCollectionIdentity(collection, lang = 'zh') {
     }
 
     return {
-        name: String(parsed.name || fallback.name).trim() || fallback.name,
-        cardTitle: String(parsed.cardTitle || fallback.cardTitle).trim() || fallback.cardTitle,
-        cardQuote: String(parsed.cardQuote || fallback.cardQuote).trim() || fallback.cardQuote,
+        name: sanitizeField(parsed.name, fallback.name, lang),
+        cardTitle: sanitizeField(parsed.cardTitle, fallback.cardTitle, lang),
+        cardQuote: sanitizeField(parsed.cardQuote, fallback.cardQuote, lang),
         source: 'ai'
     };
 }
