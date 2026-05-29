@@ -1,4 +1,5 @@
 import { SCENT_TRANSLATIONS, DB } from './data.js';
+import { buildFallbackIdentity } from './ai-service.js';
 
 export class ScentVisualization {
     constructor(app) {
@@ -159,12 +160,17 @@ export class ScentVisualization {
         const t = this.app.getTranslation().card;
         const currentCard = this.app.getCurrentCardCollectionMeta();
         const profile = this.app.getActiveCardProfile();
+        const activePerfumes = this.app.getActiveCardPerfumes();
         const ownerName = profile
             ? (profile.ownerName || profile.name)
             : (this.app.currentUser ? this.app.auth.displayName(this.app.currentUser) : '');
         const collectionName = profile ? profile.collectionName : currentCard?.name;
         const customTitle = currentCard?.cardTitle || '';
         const customQuote = currentCard?.cardQuote || '';
+        const fallbackIdentity = buildFallbackIdentity({
+            name: collectionName || currentCard?.name || '',
+            perfumes: activePerfumes
+        }, lang);
         
         if (topScents.length === 0) {
             const emptyTitle = customTitle || (collectionName
@@ -175,21 +181,9 @@ export class ScentVisualization {
             return;
         }
         
-        const dominant = topScents[0].group;
-        
-        const titles = {
-            zh: { "木质": "静谧森林的守望者", "花香": "繁花盛开的梦境", "柑橘": "阳光碎片的捕手", "辛辣": "异域香料的吟游诗人", "美食": "甜蜜时光的收藏家", "草本": "雨后原野的漫步者" },
-            en: { "木质": "Guardian of the Silent Forest", "花香": "Dream of Blooming Flowers", "柑橘": "Catcher of Sunlight Fragments", "辛辣": "Bard of Exotic Spices", "美食": "Collector of Sweet Moments", "草本": "Wanderer of After-Rain Fields" }
-        };
-        
-        const quotes = {
-            zh: { "木质": "根植于大地，呼吸于云端，你的灵魂有树木的年轮。", "花香": "在此刻，万物皆为你绽放，空气中满是温柔的絮语。", "柑橘": "明亮如夏日清晨的第一缕光，驱散所有阴霾。", "辛辣": "热烈而深邃，如同古老集市中跳动的火焰。", "美食": "记忆是甜的，如同刚刚出炉的香草蛋糕，温暖而安宁。", "草本": "风吹过青草的痕迹，是你清澈而自由的心跳。" },
-            en: { "木质": "Rooted in earth, breathing in clouds, your soul bears the rings of trees.", "花香": "In this moment, everything blooms for you, the air filled with gentle whispers.", "柑橘": "Bright as the first light of a summer morning, dispelling all haze.", "辛辣": "Passionate and profound, like a dancing flame in an ancient bazaar.", "美食": "Memory is sweet, like a freshly baked vanilla cake, warm and peaceful.", "草本": "The trace of wind over grass is your clear and free heartbeat." }
-        };
-
-        const poeticTitle = customTitle || titles[lang][dominant] || t.explorer;
+        const poeticTitle = customTitle || fallbackIdentity.cardTitle || t.explorer;
         const title = ownerName ? `${ownerName} · ${poeticTitle}` : poeticTitle;
-        const quote = customQuote || (quotes[lang][dominant] || t.default_quote);
+        const quote = customQuote || fallbackIdentity.cardQuote || t.default_quote;
 
         document.getElementById('card-user-title').textContent = title;
         document.getElementById('card-poetic-quote').textContent = `“${quote}”`;
