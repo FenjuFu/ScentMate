@@ -2,6 +2,7 @@ import { db, isFirebaseConfigured } from './firebase-config.js';
 import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const LS_KEY = 'scent_perfumes';
+const DEFAULT_COLLECTION_OWNER_EMAIL = 'fufenju@pku.edu.cn';
 
 function loadLocal(defaults) {
     try {
@@ -29,8 +30,9 @@ export async function loadPerfumes(user, defaults) {
         if (snap.exists() && Array.isArray(snap.data().perfumes)) {
             return snap.data().perfumes;
         }
-        await setDoc(ref, { perfumes: defaults });
-        return [...defaults];
+        const seededPerfumes = user.email === DEFAULT_COLLECTION_OWNER_EMAIL ? defaults : [];
+        await setDoc(ref, { perfumes: seededPerfumes });
+        return [...seededPerfumes];
     }
     return loadLocal(defaults);
 }

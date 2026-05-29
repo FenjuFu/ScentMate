@@ -130,6 +130,7 @@ export class ScentVisualization {
     renderStats(data) {
         const t = this.app.getTranslation().card;
         const isEn = this.app.state.currentLang === 'en';
+        const perfumeCount = this.app.getActiveCardPerfumes().length;
         
         const topScents = [...data.nodes].sort((a,b) => b.count - a.count).slice(0, 3);
         document.getElementById('stat-top-scents').innerHTML = topScents.map(n => 
@@ -146,7 +147,7 @@ export class ScentVisualization {
         }).join('');
 
         document.getElementById('stat-overview').innerHTML = `
-            <li><span data-i18n="card.perfumes">${t.perfumes}</span> <span class="stat-val">${this.app.state.myPerfumes.length} ${t.bottles}</span></li>
+            <li><span data-i18n="card.perfumes">${t.perfumes}</span> <span class="stat-val">${perfumeCount} ${t.bottles}</span></li>
             <li><span data-i18n="card.scents">${t.scents}</span> <span class="stat-val">${data.nodes.length} ${t.types}</span></li>
         `;
 
@@ -156,10 +157,12 @@ export class ScentVisualization {
     generatePoeticContent(topScents) {
         const lang = this.app.state.currentLang;
         const t = this.app.getTranslation().card;
+        const profile = this.app.getActiveCardProfile();
+        const ownerName = profile ? profile.name : (this.app.currentUser ? this.app.auth.displayName(this.app.currentUser) : '');
         
         if (topScents.length === 0) {
-            document.getElementById('card-user-title').textContent = t.explorer;
-            document.getElementById('card-poetic-quote').textContent = `“${t.default_quote}”`;
+            document.getElementById('card-user-title').textContent = ownerName ? `${ownerName} · ${t.explorer}` : t.explorer;
+            document.getElementById('card-poetic-quote').textContent = `“${profile && profile.bio ? profile.bio : t.default_quote}”`;
             return;
         }
         
@@ -175,8 +178,9 @@ export class ScentVisualization {
             en: { "木质": "Rooted in earth, breathing in clouds, your soul bears the rings of trees.", "花香": "In this moment, everything blooms for you, the air filled with gentle whispers.", "柑橘": "Bright as the first light of a summer morning, dispelling all haze.", "辛辣": "Passionate and profound, like a dancing flame in an ancient bazaar.", "美食": "Memory is sweet, like a freshly baked vanilla cake, warm and peaceful.", "草本": "The trace of wind over grass is your clear and free heartbeat." }
         };
 
-        const title = titles[lang][dominant] || t.explorer;
-        const quote = quotes[lang][dominant] || t.default_quote;
+        const poeticTitle = titles[lang][dominant] || t.explorer;
+        const title = ownerName ? `${ownerName} · ${poeticTitle}` : poeticTitle;
+        const quote = profile && profile.bio ? profile.bio : (quotes[lang][dominant] || t.default_quote);
 
         document.getElementById('card-user-title').textContent = title;
         document.getElementById('card-poetic-quote').textContent = `“${quote}”`;

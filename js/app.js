@@ -52,6 +52,7 @@ class ScentMateApp {
             currentLang: localStorage.getItem('scent_lang') || 'zh',
             currentView: 'home',
             myPerfumes: loadLocalSync(DEFAULT_PERFUMES),
+            cardProfile: null,
             tempNotes: { top: new Set(), middle: new Set(), base: new Set() },
             currentPickingSection: null,
             editingId: null,
@@ -72,9 +73,11 @@ class ScentMateApp {
             const isEn = this.state.currentLang === 'en';
             this.showToast(isEn ? 'Failed to load your collection' : '加载收藏失败，请稍后重试', 'error');
         }
+        if (!user && this.state.currentView === 'profile') this.navigate('home');
         this.renderPerfumeList();
         if (this.state.currentView === 'card') this.viz.renderCard();
         if (this.state.currentView === 'social') this.renderSocial();
+        if (this.state.currentView === 'profile') this.auth.renderProfileView(true);
     }
 
     async persist() {
@@ -185,6 +188,7 @@ class ScentMateApp {
         this.renderPerfumeList();
         if (this.state.currentView === 'card') this.viz.renderCard();
         if (this.state.currentView === 'social') this.renderSocial();
+        if (this.state.currentView === 'profile') this.auth.renderProfileView(true);
         this.initPicker();
     }
 
@@ -214,8 +218,10 @@ class ScentMateApp {
         if (navItem) navItem.classList.add('active');
 
         this.state.currentView = viewId;
+        if (viewId === 'card') this.state.cardProfile = null;
         if (viewId === 'card') this.viz.renderCard();
         if (viewId === 'social') this.renderSocial();
+        if (viewId === 'profile') this.auth.renderProfileView();
     }
 
     // --- Perfume Management ---
@@ -539,11 +545,12 @@ class ScentMateApp {
     }
 
     processNetworkData() {
+        const perfumes = this.getActiveCardPerfumes();
         const nodeCounts = {};
         const linkCounts = {};
         const scentToProfile = {};
 
-        this.state.myPerfumes.forEach(p => {
+        perfumes.forEach(p => {
             const allNotes = [...p.notes.top, ...p.notes.middle, ...p.notes.base];
             const uniqueNotes = [...new Set(allNotes)];
 
@@ -572,6 +579,39 @@ class ScentMateApp {
         });
 
         return { nodes, links };
+    }
+
+    buildMockPerfumes(user) {
+        if (Array.isArray(user.perfumes) && user.perfumes.length > 0) return user.perfumes;
+        const ingredients = Array.isArray(user.ingredients) ? user.ingredients : [];
+        const top = ingredients.slice(0, 2);
+        const middle = ingredients.slice(2, 4);
+        const base = ingredients.slice(4);
+        return [{
+            id: `mock-${user.name}`,
+            name: this.state.currentLang === 'en' ? `${user.name}'s Card` : `${user.name}的气味名片`,
+            brand: user.name,
+            notes: { top, middle, base }
+        }];
+    }
+
+    getActiveCardProfile() {
+        return this.state.cardProfile;
+    }
+
+    getActiveCardPerfumes() {
+        return this.state.cardProfile ? this.buildMockPerfumes(this.state.cardProfile) : this.state.myPerfumes;
+    }
+
+    openSocialCard(user) {
+        this.state.cardProfile = user;
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById('view-card').classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        const navItem = document.querySelector(`.nav-item[data-view="card"]`);
+        if (navItem) navItem.classList.add('active');
+        this.state.currentView = 'card';
+        this.viz.renderCard();
     }
 
     getProfile(note) {
@@ -624,8 +664,16 @@ class ScentMateApp {
                     <span class="score-val">${m.score}%</span>
                     <span class="score-label">${t.match_score}</span>
                 </div>
+                <button class="btn-outline social-card-btn" data-user="${m.name}">${t.view_card}</button>
             `;
             container.appendChild(el);
+        });
+
+        container.querySelectorAll('.social-card-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const user = matches.find(item => item.name === btn.getAttribute('data-user'));
+                if (user) this.openSocialCard(user);
+            });
         });
     }
 }
