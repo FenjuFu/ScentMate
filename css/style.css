@@ -890,6 +890,20 @@ main {
     font-size: 13px;
     font-weight: 600;
 }
+.music-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 14px;
+}
+.music-card-actions .music-card-link {
+    margin-top: 0;
+}
+.music-refresh-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+}
 .music-card-link:hover {
     text-decoration: underline;
 }

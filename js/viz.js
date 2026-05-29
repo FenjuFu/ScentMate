@@ -197,16 +197,21 @@ export class ScentVisualization {
         const musicComposer = currentCard?.musicComposer || fallbackIdentity.musicComposer || '';
         const musicReason = currentCard?.musicReason || fallbackIdentity.musicReason || '';
         const musicUrl = currentCard?.musicUrl || fallbackIdentity.musicUrl || '';
+        const musicLinkLabel = currentCard?.musicLinkLabel || fallbackIdentity.musicLinkLabel || t.music_link;
 
         document.getElementById('card-music-title').textContent = musicTitle || t.music_fallback_title;
         document.getElementById('card-music-composer').textContent = musicComposer || '';
         document.getElementById('card-music-reason').textContent = musicReason || t.music_fallback_reason;
 
         const link = document.getElementById('card-music-link');
+        const changeButton = document.getElementById('btn-card-change-music');
+        if (changeButton) {
+            changeButton.style.display = this.app.getActiveCardProfile() ? 'none' : 'inline-flex';
+        }
         if (!link) return;
         if (musicUrl) {
             link.href = musicUrl;
-            link.textContent = t.music_link;
+            link.textContent = musicLinkLabel;
             link.style.display = 'inline-flex';
         } else {
             link.removeAttribute('href');

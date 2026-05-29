@@ -50,6 +50,8 @@ export function createCollection(collection = {}, defaultSettings = DEFAULT_VISI
         musicTitle: String(collection.musicTitle || '').trim(),
         musicComposer: String(collection.musicComposer || '').trim(),
         musicUrl: String(collection.musicUrl || '').trim(),
+        musicProvider: String(collection.musicProvider || '').trim(),
+        musicLinkLabel: String(collection.musicLinkLabel || '').trim(),
         musicReason: String(collection.musicReason || '').trim(),
         createdAt: collection.createdAt || new Date().toISOString(),
         updatedAt: collection.updatedAt || new Date().toISOString()
@@ -128,6 +130,8 @@ function buildPublicCollectionFields(collectionData) {
         musicTitle: collection.musicTitle || '',
         musicComposer: collection.musicComposer || '',
         musicUrl: collection.musicUrl || '',
+        musicProvider: collection.musicProvider || '',
+        musicLinkLabel: collection.musicLinkLabel || '',
         musicReason: collection.musicReason || '',
         updatedAt: collection.updatedAt
     };
@@ -269,6 +273,8 @@ export async function loadPublicUsers(currentUser = null) {
             musicTitle: entry.musicTitle || '',
             musicComposer: entry.musicComposer || '',
             musicUrl: entry.musicUrl || '',
+            musicProvider: entry.musicProvider || '',
+            musicLinkLabel: entry.musicLinkLabel || '',
             musicReason: entry.musicReason || '',
             updatedAt: entry.updatedAt || ''
         }));

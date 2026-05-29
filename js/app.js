@@ -1,7 +1,7 @@
 import { DB, ALL_INGREDIENTS, SCENT_TRANSLATIONS, TRANSLATIONS, PROFILE_COLORS } from './data.js';
 import { AuthSystem } from './auth.js';
 import { ScentVisualization } from './viz.js';
-import { buildFallbackIdentity, generateCollectionIdentity } from './ai-service.js';
+import { buildFallbackIdentity, generateCollectionIdentity, generateCollectionMusicPairing } from './ai-service.js';
 import { createCollection, loadLocalSync, loadPerfumes, loadPublicUsers, savePerfumes } from './store.js';
 
 const DEFAULT_PERFUMES = [
@@ -194,6 +194,7 @@ class ScentMateApp {
         document.getElementById('btn-manage-collection').addEventListener('click', () => this.navigate('collection'));
         document.getElementById('btn-home-card').addEventListener('click', () => this.navigate('card'));
         document.getElementById('btn-add-perfume').addEventListener('click', () => this.openAddModal());
+        document.getElementById('btn-card-change-music')?.addEventListener('click', () => this.refreshActiveCollectionMusic());
 
         document.getElementById('collection-search').addEventListener('input', (e) => {
             this.state.searchQuery = e.target.value.trim().toLowerCase();
@@ -432,6 +433,7 @@ class ScentMateApp {
                         <button class="btn-secondary collection-small-btn" id="btn-collection-rename" type="button">${isEn ? 'Rename' : '重命名'}</button>
                         <button class="btn-secondary collection-small-btn" id="btn-collection-delete" type="button">${isEn ? 'Delete' : '删除'}</button>
                         <button class="btn-secondary collection-small-btn" id="btn-collection-ai" type="button">${isEn ? 'AI name + card + music' : 'AI 命名、卡片与音乐'}</button>
+                        <button class="btn-secondary collection-small-btn" id="btn-collection-change-music" type="button">${isEn ? 'Change track' : '换一首'}</button>
                         <button class="btn-secondary collection-small-btn" id="btn-collection-view-card" type="button">${isEn ? 'Open card' : '查看名片'}</button>
                     </div>
                     <div class="collection-toolbar-group">
@@ -460,9 +462,23 @@ class ScentMateApp {
         document.getElementById('btn-collection-rename')?.addEventListener('click', () => this.renameActiveCollection());
         document.getElementById('btn-collection-delete')?.addEventListener('click', () => this.deleteActiveCollection());
         document.getElementById('btn-collection-ai')?.addEventListener('click', () => this.generateActiveCollectionIdentity());
+        document.getElementById('btn-collection-change-music')?.addEventListener('click', () => this.refreshActiveCollectionMusic());
         document.getElementById('btn-collection-view-card')?.addEventListener('click', () => this.navigate('card'));
         document.getElementById('btn-toggle-public-collection')?.addEventListener('click', () => this.toggleActiveCollectionVisibility('publicCollectionEnabled'));
         document.getElementById('btn-toggle-public-card')?.addEventListener('click', () => this.toggleActiveCollectionVisibility('publicCardEnabled'));
+    }
+
+    applyMusicPairingToActiveCollection(music) {
+        this.updateActiveCollection((item) => ({
+            ...item,
+            musicId: music.musicId,
+            musicTitle: music.musicTitle,
+            musicComposer: music.musicComposer,
+            musicUrl: music.musicUrl,
+            musicProvider: music.musicProvider,
+            musicLinkLabel: music.musicLinkLabel,
+            musicReason: music.musicReason
+        }));
     }
 
     createCollectionFolder() {
@@ -556,6 +572,8 @@ class ScentMateApp {
                 musicTitle: identity.musicTitle,
                 musicComposer: identity.musicComposer,
                 musicUrl: identity.musicUrl,
+                musicProvider: identity.musicProvider,
+                musicLinkLabel: identity.musicLinkLabel,
                 musicReason: identity.musicReason
             }));
             this.renderPerfumeList();
@@ -576,12 +594,40 @@ class ScentMateApp {
                 musicTitle: identity.musicTitle,
                 musicComposer: identity.musicComposer,
                 musicUrl: identity.musicUrl,
+                musicProvider: identity.musicProvider,
+                musicLinkLabel: identity.musicLinkLabel,
                 musicReason: identity.musicReason
             }));
             this.renderPerfumeList();
             if (this.state.currentView === 'card') this.viz.renderCard();
             this.persist();
         }
+    }
+
+    async refreshActiveCollectionMusic() {
+        if (this.getActiveCardProfile()) return;
+
+        const activeCollection = this.getActiveOwnedCollection();
+        if (!activeCollection) return;
+        const t = this.getTranslation().toast;
+
+        if (!activeCollection.perfumes || activeCollection.perfumes.length === 0) {
+            this.showToast(t.music_need_perfumes, 'info');
+            return;
+        }
+
+        this.showToast(t.music_generating, 'info');
+        const music = await generateCollectionMusicPairing(
+            activeCollection,
+            activeCollection.musicId || '',
+            this.state.currentLang
+        );
+
+        this.applyMusicPairingToActiveCollection(music);
+        this.renderPerfumeList();
+        if (this.state.currentView === 'card') this.viz.renderCard();
+        this.persist();
+        this.showToast(music.source === 'ai' ? t.music_updated : t.music_fallback, 'success');
     }
 
     deletePerfume(id) {

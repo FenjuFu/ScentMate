@@ -143,31 +143,97 @@ const CLASSICAL_MUSIC_LIBRARY = [
         id: 'satie-gymnopedie-1',
         title: 'Gymnopédie No. 1',
         composer: 'Erik Satie',
-        url: 'https://en.wikipedia.org/wiki/Gymnop%C3%A9dies',
+        url: 'https://imslp.org/wiki/3_Gymnop%C3%A9dies_(Satie,_Erik)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['tea', 'leafy-green'],
         profiles: ['草本', '绿叶', '花香'],
-        keywords: ['清透', '解压', '微凉', '安静', '线性', 'green', 'calm', 'airy', 'cool', 'quiet']
+        keywords: ['清透', '解压', '微凉', '安静', '线性', 'green', 'calm', 'airy', 'cool', 'quiet', 'tea', 'minimal']
+    },
+    {
+        id: 'debussy-arabesque-1',
+        title: 'Arabesque No. 1',
+        composer: 'Claude Debussy',
+        url: 'https://imslp.org/wiki/2_Arabesques_(Debussy,_Claude)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['tea', 'leafy-green'],
+        profiles: ['草本', '绿叶', '花香'],
+        keywords: ['茶感', '白茶', '叶尖', '清苦', '透气', 'tea-like', 'airy', 'leafy', 'delicate', 'clear']
     },
     {
         id: 'debussy-clair-de-lune',
         title: 'Clair de lune',
         composer: 'Claude Debussy',
-        url: 'https://en.wikipedia.org/wiki/Suite_bergamasque#3._Clair_de_lune',
+        url: 'https://commons.wikimedia.org/wiki/File:Clair_de_lune_(Claude_Debussy)_Suite_bergamasque.ogg',
+        provider: 'wikimedia',
+        linkType: 'audio',
+        subtypes: ['powdery-iris'],
         profiles: ['花香', '树脂', '动物'],
         keywords: ['月光', '静奢', '柔光', '粉感', '贴肤', 'moonlit', 'soft', 'powdery', 'quiet luxury']
+    },
+    {
+        id: 'faure-pavane-op50',
+        title: 'Pavane, Op. 50',
+        composer: 'Gabriel Faure',
+        url: 'https://imslp.org/wiki/Pavane,_Op.50_(Faur%C3%A9,_Gabriel)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['powdery-iris'],
+        profiles: ['花香', '动物', '木质'],
+        keywords: ['鸢尾粉感', '皂感', '丝绒', '静奢', '古典粉雾', 'orris', 'powdery', 'velvet', 'refined', 'soft-focus']
+    },
+    {
+        id: 'ravel-tombeau-menuet',
+        title: 'Menuet from Le tombeau de Couperin',
+        composer: 'Maurice Ravel',
+        url: 'https://imslp.org/wiki/Le_tombeau_de_Couperin_(piano)_(Ravel,_Maurice)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['powdery-iris'],
+        profiles: ['花香', '木质', '动物'],
+        keywords: ['鸢尾', '米粉感', '干净', '细腻', '粉扑', 'iris', 'powdery', 'clean', 'silken', 'classic']
     },
     {
         id: 'debussy-faun',
         title: "Prélude à l'après-midi d'un faune",
         composer: 'Claude Debussy',
-        url: 'https://en.wikipedia.org/wiki/Pr%C3%A9lude_%C3%A0_l%27apr%C3%A8s-midi_d%27un_faune',
+        url: 'https://imslp.org/wiki/Pr%C3%A9lude_%C3%A0_l%27apr%C3%A8s-midi_d%27un_faune_(Debussy,_Claude)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['leafy-green'],
         profiles: ['绿叶', '花香', '果香'],
         keywords: ['植物感', '空气感', '流动', '轻盈', '朦胧', 'floral', 'green', 'fluid', 'hazy']
+    },
+    {
+        id: 'delius-first-cuckoo',
+        title: 'On Hearing the First Cuckoo in Spring',
+        composer: 'Frederick Delius',
+        url: 'https://imslp.org/wiki/2_Pieces_for_Small_Orchestra_(Delius,_Frederick)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['leafy-green'],
+        profiles: ['绿叶', '草本', '木质'],
+        keywords: ['春野', '湿润', '苔感', '草坪', '露水', 'spring meadow', 'dewy', 'mossy', 'pastoral', 'verdant']
+    },
+    {
+        id: 'schumann-waldszenen',
+        title: 'Waldszenen, Op. 82',
+        composer: 'Robert Schumann',
+        url: 'https://imslp.org/wiki/Waldszenen,_Op.82_(Schumann,_Robert)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['leafy-green'],
+        profiles: ['绿叶', '木质', '草本'],
+        keywords: ['林间', '树影', '阴翳', '松针', '湿土', 'forest', 'shaded', 'woodland', 'green', 'earthy']
     },
     {
         id: 'ravel-pavane',
         title: 'Pavane pour une infante défunte',
         composer: 'Maurice Ravel',
-        url: 'https://en.wikipedia.org/wiki/Pavane_pour_une_infante_d%C3%A9funte',
+        url: 'https://imslp.org/wiki/Pavane_pour_une_infante_d%C3%A9funte,_M.19_(Ravel,_Maurice)',
+        provider: 'imslp',
+        linkType: 'score-audio',
         profiles: ['花香', '动物', '木质'],
         keywords: ['古典', '克制', '优雅', '粉感', '沉静', 'elegant', 'restrained', 'classic', 'poised']
     },
@@ -175,7 +241,9 @@ const CLASSICAL_MUSIC_LIBRARY = [
         id: 'faure-sicilienne',
         title: 'Sicilienne, Op. 78',
         composer: 'Gabriel Faure',
-        url: 'https://en.wikipedia.org/wiki/Sicilienne_(Faur%C3%A9)',
+        url: 'https://imslp.org/wiki/Sicilienne,_Op.78_(Faur%E9,_Gabriel)',
+        provider: 'imslp',
+        linkType: 'score-audio',
         profiles: ['花香', '果香', '草本'],
         keywords: ['明亮', '轻快', '柔和', '花果', '清新', 'bright', 'graceful', 'light', 'fresh']
     },
@@ -183,7 +251,9 @@ const CLASSICAL_MUSIC_LIBRARY = [
         id: 'bach-air',
         title: 'Air',
         composer: 'J. S. Bach',
-        url: 'https://en.wikipedia.org/wiki/Orchestral_Suite_No._3_(Bach)#Air',
+        url: 'https://imslp.org/wiki/Orchestral_Suite_No.3_in_D_major,_BWV_1068_(Bach,_Johann_Sebastian)',
+        provider: 'imslp',
+        linkType: 'score-audio',
         profiles: ['木质', '树脂', '花香'],
         keywords: ['干净', '平衡', '纯净', '秩序', '安宁', 'clean', 'balanced', 'pure', 'serene']
     },
@@ -191,15 +261,43 @@ const CLASSICAL_MUSIC_LIBRARY = [
         id: 'satie-gnossienne-1',
         title: 'Gnossienne No. 1',
         composer: 'Erik Satie',
-        url: 'https://en.wikipedia.org/wiki/Gnossiennes',
+        url: 'https://imslp.org/wiki/Gnossiennes%20(Satie,%20Erik)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['resin-incense'],
         profiles: ['树脂', '木质', '动物'],
         keywords: ['苦甜', '神秘', '药感', '阴影', '内省', 'bitter', 'mysterious', 'shadowy', 'introspective']
+    },
+    {
+        id: 'debussy-pagodes',
+        title: 'Pagodes',
+        composer: 'Claude Debussy',
+        url: 'https://imslp.org/wiki/Estampes_(Debussy,_Claude)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['resin-incense'],
+        profiles: ['树脂', '木质', '辛辣'],
+        keywords: ['焚香', '树脂焚香', '木烟', '琥珀', '回响', 'incense', 'resinous', 'smoky', 'amber', 'ritual']
+    },
+    {
+        id: 'couperin-barricades',
+        title: 'Les Barricades mystérieuses',
+        composer: 'Francois Couperin',
+        url: 'https://imslp.org/wiki/Les_Barricades_myst%C3%A9rieuses_(Couperin,_Fran%C3%A7ois)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['resin-incense'],
+        profiles: ['树脂', '花香', '动物'],
+        keywords: ['香脂', '烛光', '粉尘', '缓慢燃烧', '旧木柜', 'benzoin', 'ambered', 'hushed', 'powdered', 'incense veil']
     },
     {
         id: 'debussy-la-mer',
         title: 'La mer',
         composer: 'Claude Debussy',
-        url: 'https://en.wikipedia.org/wiki/La_mer_(Debussy)',
+        url: 'https://imslp.org/wiki/La_mer_(Debussy,_Claude)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['fruity-sea-breeze'],
         profiles: ['果香', '绿叶', '树脂'],
         keywords: ['海风', '矿物感', '盐感', '流动', '通透', 'sea', 'mineral', 'salty', 'transparent']
     },
@@ -207,19 +305,85 @@ const CLASSICAL_MUSIC_LIBRARY = [
         id: 'ravel-une-barque',
         title: "Une barque sur l'ocean",
         composer: 'Maurice Ravel',
-        url: 'https://en.wikipedia.org/wiki/Miroirs_(Ravel)#Une_barque_sur_l%27oc%C3%A9an',
+        url: 'https://imslp.org/wiki/Miroirs_(Ravel,_Maurice)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['fruity-sea-breeze'],
         profiles: ['果香', '树脂', '花香'],
         keywords: ['水感', '波光', '漂浮', '海洋', '轻晃', 'watery', 'shimmering', 'floating', 'ocean']
+    },
+    {
+        id: 'mendelssohn-hebrides',
+        title: 'The Hebrides Overture',
+        composer: 'Felix Mendelssohn',
+        url: 'https://imslp.org/wiki/The_Hebrides,_Op.26_(Mendelssohn,_Felix)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['fruity-sea-breeze'],
+        profiles: ['果香', '树脂', '绿叶'],
+        keywords: ['果香海风', '潮气', '海崖', '冷调盐感', '风压', 'sea breeze', 'briny', 'windy', 'mineral', 'open-air']
     },
     {
         id: 'vivaldi-spring',
         title: 'Spring',
         composer: 'Antonio Vivaldi',
-        url: 'https://en.wikipedia.org/wiki/The_Four_Seasons_(Vivaldi)',
+        url: 'https://imslp.org/wiki/Violin_Concerto_in_E_major,_RV_269_(Vivaldi,_Antonio)',
+        provider: 'imslp',
+        linkType: 'score',
         profiles: ['绿叶', '花香', '果香'],
         keywords: ['生机', '明媚', '鲜活', '发芽', '晴朗', 'spring', 'alive', 'fresh', 'radiant']
+    },
+    {
+        id: 'debussy-reverie',
+        title: 'Rêverie',
+        composer: 'Claude Debussy',
+        url: 'https://imslp.org/wiki/R%C3%AAverie_(Debussy,_Claude)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        profiles: ['花香', '树脂', '其他'],
+        keywords: ['朦胧', '雾气', '柔光', '漂浮', '梦感', 'dreamy', 'misty', 'soft', 'floating']
+    },
+    {
+        id: 'debussy-voiles',
+        title: 'Voiles',
+        composer: 'Claude Debussy',
+        url: 'https://imslp.org/wiki/Pr%C3%A9ludes,_Livre_1_(Debussy,_Claude)',
+        provider: 'imslp',
+        linkType: 'score-audio',
+        subtypes: ['tea'],
+        profiles: ['草本', '树脂', '其他'],
+        keywords: ['茶雾', '薄纱', '蒸汽', '半透明', '静水', 'tea mist', 'gauzy', 'sheer', 'drifting', 'cool']
     }
 ];
+
+const MUSIC_SUBTYPE_SIGNALS = {
+    tea: {
+        notes: ['茶叶', '乌龙茶', '马黛茶', '绿茶', '白茶', '普洱茶', '中式珠茶', '东方美人茶', '阿萨姆红茶', '茶', '茶香'],
+        impressions: ['清透', '微凉', '安静', '线性', 'green', 'airy', 'cool', 'quiet', 'tea'],
+        profiles: ['草本']
+    },
+    'leafy-green': {
+        notes: ['绿叶', '青绿', '紫罗兰叶', '黄瓜', '苦瓜', '松叶', '蕨类植物', '大黄', '醋栗叶', '青草', '常春藤'],
+        impressions: ['雨露', '鲜活', '植物感', 'dewy', 'verdant', 'alive', 'leafy', 'green'],
+        profiles: ['绿叶']
+    },
+    'powdery-iris': {
+        notes: ['鸢尾', '鸢尾根', '佛罗伦萨鸢尾', '紫罗兰', '紫罗兰叶', '麝香', '白麝香', '丝绒麝香'],
+        impressions: ['粉感', '柔光', '贴肤', 'powdery', 'orris', 'velvet', 'soft', 'skin-close'],
+        profiles: ['花香', '动物']
+    },
+    'resin-incense': {
+        notes: ['乳香', '没药', '安息香', '劳丹脂', '白松香', '岩玫瑰树脂', '琥珀', '灰琥珀'],
+        impressions: ['焚香', '琥珀', '回响', 'incense', 'resinous', 'amber', 'smoky'],
+        profiles: ['树脂']
+    },
+    'fruity-sea-breeze': {
+        fruitNotes: ['苹果', '桃子', '梨', '黑加仑', '黑醋栗', '无花果', '树莓', '菠萝', '西瓜', '橙子', '蜜瓜', '草莓', '青梨', '青苹果', '杏桃', '甜瓜', '樱桃', '清新香槟果香'],
+        marineNotes: ['海盐', '海藻', '龙涎香', '灰琥珀'],
+        impressions: ['海风', '盐感', '矿物感', '流动', 'sea', 'salty', 'mineral', 'watery', 'ocean'],
+        profiles: ['果香']
+    }
+};
 
 function compactList(items = [], limit = 12) {
     return Array.from(new Set(items)).slice(0, limit);
@@ -291,31 +455,122 @@ function getMusicById(id) {
     return CLASSICAL_MUSIC_LIBRARY.find(item => item.id === id) || null;
 }
 
-function chooseMusicFallback(topSoulScents, impressionKeywords, lang = 'zh') {
+function getMusicLinkLabel(piece, lang = 'zh') {
+    const provider = piece?.provider || 'web';
+    const linkType = piece?.linkType || 'web';
+    const key = `${provider}:${linkType}`;
+    const zh = {
+        'wikimedia:audio': '在 Wikimedia Commons 收听',
+        'wikimedia:score-audio': '在 Wikimedia Commons 打开',
+        'imslp:score': '在 IMSLP 查看乐谱',
+        'imslp:audio': '在 IMSLP 收听录音',
+        'imslp:score-audio': '在 IMSLP 查看乐谱与录音',
+        'musopen:audio': '在 Musopen 收听',
+        'musopen:score': '在 Musopen 查看乐谱'
+    };
+    const en = {
+        'wikimedia:audio': 'Listen on Wikimedia Commons',
+        'wikimedia:score-audio': 'Open on Wikimedia Commons',
+        'imslp:score': 'View score on IMSLP',
+        'imslp:audio': 'Listen on IMSLP',
+        'imslp:score-audio': 'Open score and recordings on IMSLP',
+        'musopen:audio': 'Listen on Musopen',
+        'musopen:score': 'View score on Musopen'
+    };
+    const dictionary = lang === 'en' ? en : zh;
+    return dictionary[key] || (lang === 'en' ? 'Open public link' : '打开公开链接');
+}
+
+function deriveMusicSubtypeSignals(topSoulScents, impressionKeywords, collectionNotes = []) {
+    const notes = new Set([
+        ...(collectionNotes || []),
+        ...topSoulScents.map((item) => item.note)
+    ].filter(Boolean));
+    const profiles = new Set(topSoulScents.map((item) => item.profile).filter(Boolean));
+    const lowerImpressions = new Set((impressionKeywords || []).map((item) => String(item).toLowerCase()));
+    const weightedSignals = [];
+
+    const addSignal = (id, weight) => {
+        if (!weight) return;
+        const existing = weightedSignals.find((item) => item.id === id);
+        if (existing) existing.weight = Math.max(existing.weight, weight);
+        else weightedSignals.push({ id, weight });
+    };
+
+    Object.entries(MUSIC_SUBTYPE_SIGNALS).forEach(([id, rule]) => {
+        let weight = 0;
+        const noteMatches = (rule.notes || []).filter((note) => notes.has(note)).length;
+        const impressionMatches = (rule.impressions || []).filter((item) => lowerImpressions.has(String(item).toLowerCase())).length;
+        const profileMatches = (rule.profiles || []).filter((profile) => profiles.has(profile)).length;
+
+        if (id === 'fruity-sea-breeze') {
+            const fruitMatches = (rule.fruitNotes || []).filter((note) => notes.has(note)).length;
+            const marineMatches = (rule.marineNotes || []).filter((note) => notes.has(note)).length;
+            if (fruitMatches > 0 && marineMatches > 0) weight += 6;
+            else if ((fruitMatches > 0 && profileMatches > 0) || (marineMatches > 0 && profileMatches > 0)) weight += 3;
+            if (impressionMatches > 0) weight += Math.min(2, impressionMatches);
+        } else {
+            if (noteMatches > 0) weight += Math.min(5, noteMatches * 2);
+            if (profileMatches > 0) weight += profileMatches;
+            if (impressionMatches > 0) weight += Math.min(2, impressionMatches);
+        }
+
+        if (weight > 0) addSignal(id, weight);
+    });
+
+    return weightedSignals.sort((a, b) => b.weight - a.weight);
+}
+
+function rankMusicCandidates(topSoulScents, impressionKeywords, excludeIds = [], collectionNotes = []) {
     const profileWeights = topSoulScents.map((item, index) => ({
         profile: item.profile,
         weight: Math.max(1, 4 - index)
     }));
+    const subtypeSignals = deriveMusicSubtypeSignals(topSoulScents, impressionKeywords, collectionNotes);
+    const excluded = new Set((excludeIds || []).filter(Boolean));
+    return CLASSICAL_MUSIC_LIBRARY
+        .filter((piece) => !excluded.has(piece.id))
+        .map((piece) => {
+            let score = 0;
+            profileWeights.forEach(({ profile, weight }) => {
+                if (piece.profiles.includes(profile)) score += weight * 3;
+            });
+            impressionKeywords.forEach((keyword) => {
+                const lowerKeyword = String(keyword).toLowerCase();
+                if (piece.keywords.some((item) => item.toLowerCase() === lowerKeyword)) score += 2;
+                else if (piece.keywords.some((item) => item.toLowerCase().includes(lowerKeyword))) score += 1;
+            });
+            subtypeSignals.forEach(({ id, weight }) => {
+                if (piece.subtypes?.includes(id)) score += weight * 4;
+            });
+            if (piece.linkType === 'audio') score += 1.5;
+            if (piece.provider === 'wikimedia' || piece.provider === 'musopen') score += 1;
+            return { piece, score };
+        })
+        .sort((a, b) => b.score - a.score);
+}
 
-    let best = CLASSICAL_MUSIC_LIBRARY[0];
-    let bestScore = -1;
+function chooseMusicFallback(topSoulScents, impressionKeywords, lang = 'zh', options = {}) {
+    const ranked = rankMusicCandidates(
+        topSoulScents,
+        impressionKeywords,
+        options.excludeIds || [],
+        options.collectionNotes || []
+    );
+    return ranked[0]?.piece || CLASSICAL_MUSIC_LIBRARY[0];
+}
 
-    CLASSICAL_MUSIC_LIBRARY.forEach((piece) => {
-        let score = 0;
-        profileWeights.forEach(({ profile, weight }) => {
-            if (piece.profiles.includes(profile)) score += weight * 3;
-        });
-        impressionKeywords.forEach((keyword) => {
-            if (piece.keywords.some((item) => item.toLowerCase() === String(keyword).toLowerCase())) score += 2;
-            else if (piece.keywords.some((item) => item.toLowerCase().includes(String(keyword).toLowerCase()))) score += 1;
-        });
-        if (score > bestScore) {
-            best = piece;
-            bestScore = score;
-        }
-    });
-
-    return best;
+function buildMusicPayload(piece, topSoulScents, impressionKeywords, lang = 'zh', reasonOverride = '', source = 'fallback') {
+    return {
+        musicId: piece.id,
+        musicTitle: piece.title,
+        musicComposer: piece.composer,
+        musicUrl: piece.url,
+        musicProvider: piece.provider || '',
+        musicLinkLabel: getMusicLinkLabel(piece, lang),
+        musicReason: reasonOverride || buildMusicReasonFallback(piece, topSoulScents, impressionKeywords, lang),
+        source
+    };
 }
 
 function buildReviewFallback(topSoulScents, impressionKeywords, lang = 'zh') {
@@ -368,20 +623,17 @@ function extractJson(text) {
 }
 
 export function buildFallbackIdentity(collection, lang = 'zh') {
+    const notes = collectNotes(collection);
     const topSoulScents = computeTopSoulScents(collection);
     const impressionKeywords = buildImpressionKeywords(topSoulScents, lang);
     const reviewFallback = buildReviewFallback(topSoulScents, impressionKeywords, lang);
-    const musicFallback = chooseMusicFallback(topSoulScents, impressionKeywords, lang);
+    const musicFallback = chooseMusicFallback(topSoulScents, impressionKeywords, lang, { collectionNotes: notes });
 
     return {
         name: reviewFallback.name,
         cardTitle: reviewFallback.cardTitle,
         cardQuote: reviewFallback.cardQuote,
-        musicId: musicFallback.id,
-        musicTitle: musicFallback.title,
-        musicComposer: musicFallback.composer,
-        musicUrl: musicFallback.url,
-        musicReason: buildMusicReasonFallback(musicFallback, topSoulScents, impressionKeywords, lang),
+        ...buildMusicPayload(musicFallback, topSoulScents, impressionKeywords, lang),
         source: 'fallback'
     };
 }
@@ -420,6 +672,9 @@ export async function generateCollectionIdentity(collection, lang = 'zh') {
                         id: item.id,
                         title: item.title,
                         composer: item.composer,
+                        provider: item.provider,
+                        linkType: item.linkType,
+                        subtypes: item.subtypes || [],
                         profiles: item.profiles,
                         keywords: item.keywords
                     })),
@@ -464,17 +719,119 @@ export async function generateCollectionIdentity(collection, lang = 'zh') {
         throw new Error('ai-invalid-json');
     }
 
-    const chosenMusic = getMusicById(String(parsed.musicId || '')) || getMusicById(fallback.musicId) || chooseMusicFallback(topSoulScents, impressionKeywords, lang);
+    const chosenMusic = getMusicById(String(parsed.musicId || ''))
+        || getMusicById(fallback.musicId)
+        || chooseMusicFallback(topSoulScents, impressionKeywords, lang, { collectionNotes: notes });
+    const musicPayload = buildMusicPayload(
+        chosenMusic,
+        topSoulScents,
+        impressionKeywords,
+        lang,
+        sanitizeField(parsed.musicReason, fallback.musicReason, lang),
+        'ai'
+    );
 
     return {
         name: sanitizeField(parsed.name, fallback.name, lang),
         cardTitle: sanitizeField(parsed.cardTitle, fallback.cardTitle, lang),
         cardQuote: sanitizeField(parsed.cardQuote, fallback.cardQuote, lang),
-        musicId: chosenMusic.id,
-        musicTitle: chosenMusic.title,
-        musicComposer: chosenMusic.composer,
-        musicUrl: chosenMusic.url,
-        musicReason: sanitizeField(parsed.musicReason, fallback.musicReason, lang),
+        ...musicPayload,
         source: 'ai'
     };
+}
+
+export async function generateCollectionMusicPairing(collection, currentMusicId = '', lang = 'zh') {
+    const notes = collectNotes(collection);
+    const topSoulScents = computeTopSoulScents(collection);
+    const impressionKeywords = buildImpressionKeywords(topSoulScents, lang);
+    const fallbackPiece = chooseMusicFallback(topSoulScents, impressionKeywords, lang, {
+        excludeIds: [currentMusicId],
+        collectionNotes: notes
+    });
+    const fallback = buildMusicPayload(fallbackPiece, topSoulScents, impressionKeywords, lang, '', 'fallback');
+    const candidates = rankMusicCandidates(topSoulScents, impressionKeywords, [currentMusicId], notes)
+        .slice(0, 6)
+        .map(({ piece }) => ({
+            id: piece.id,
+            title: piece.title,
+            composer: piece.composer,
+            provider: piece.provider,
+            linkType: piece.linkType,
+            subtypes: piece.subtypes || [],
+            profiles: piece.profiles,
+            keywords: piece.keywords
+        }));
+
+    if (candidates.length === 0) {
+        return fallback;
+    }
+
+    try {
+        const payload = {
+            temperature: 0.75,
+            messages: [
+                {
+                    role: 'system',
+                    content: lang === 'en'
+                        ? 'You are a perfume editor selecting a classical music pairing. Choose one work from the provided candidate list that best matches the mood of the scent card. Return JSON only with keys: musicId, musicReason.'
+                        : '你是香水编辑，正在为一张气味名片挑选更贴切的古典音乐。请只从提供的候选作品里选一首，返回 JSON，包含 musicId 和 musicReason 两个字段。'
+                },
+                {
+                    role: 'user',
+                    content: JSON.stringify({
+                        lang,
+                        currentMusicId,
+                        topSoulScents: topSoulScents.map((item) => ({
+                            note: item.note,
+                            displayName: lang === 'en' ? (SCENT_TRANSLATIONS[item.note] || item.note) : item.note,
+                            count: item.count,
+                            profile: item.profile
+                        })),
+                        impressionKeywords,
+                        candidates,
+                        constraints: lang === 'en'
+                            ? {
+                                musicId: 'must be one id from candidates',
+                                musicReason: '1 sentence, explain why this piece matches the scent better than the current one'
+                            }
+                            : {
+                                musicId: '必须是 candidates 里的某个 id',
+                                musicReason: '1 句话，解释这首曲子为什么更贴这张气味名片'
+                            }
+                    })
+                }
+            ]
+        };
+
+        const response = await fetch('/api/ai', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            return fallback;
+        }
+
+        const data = await response.json();
+        const content = data?.choices?.[0]?.message?.content || '';
+        const parsed = extractJson(content);
+        if (!parsed) {
+            return fallback;
+        }
+
+        const chosenMusic = getMusicById(String(parsed.musicId || '')) || fallbackPiece;
+        return buildMusicPayload(
+            chosenMusic,
+            topSoulScents,
+            impressionKeywords,
+            lang,
+            sanitizeField(parsed.musicReason, fallback.musicReason, lang),
+            'ai'
+        );
+    } catch (error) {
+        return fallback;
+    }
 }
