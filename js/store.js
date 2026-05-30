@@ -247,8 +247,6 @@ export async function loadPublicUsers(currentUser = null) {
 
     const snap = await getDocs(query(collection(db, PUBLIC_PROFILES_COLLECTION), where('isPublic', '==', true)));
     return snap.docs.flatMap((item) => {
-        if (currentUser && item.id === currentUser.uid) return [];
-
         const data = item.data();
         const ownerName = data.publicDisplayName || 'Scent Explorer';
         const ownerPhotoURL = data.publicPhotoURL || '';
