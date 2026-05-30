@@ -275,15 +275,28 @@ class ScentMateApp {
         const thread = document.getElementById('advisor-thread');
         if (!thread) return;
         const t = this.getTranslation().advisor;
+        const isEn = this.state.currentLang === 'en';
         const history = this.state.advisorHistory || [];
         if (!history.length) {
             thread.innerHTML = `<div class="advisor-empty">${this.escapeHtml(t.empty)}</div>`;
             return;
         }
-        thread.innerHTML = history.map(m => {
+        thread.innerHTML = history.map((m, idx) => {
             const cls = m.role === 'user' ? 'user' : `assistant${m.loading ? ' loading' : ''}${m.error ? ' error' : ''}`;
-            return `<div class="advisor-msg ${cls}"><div class="advisor-msg-bubble">${this.escapeHtml(m.content)}</div></div>`;
+            const retry = m.error && m.retryFor
+                ? `<button type="button" class="advisor-retry-btn" data-retry-index="${idx}">${this.escapeHtml(isEn ? 'Retry' : '重试')}</button>`
+                : '';
+            return `<div class="advisor-msg ${cls}"><div class="advisor-msg-bubble">${this.escapeHtml(m.content)}${retry}</div></div>`;
         }).join('');
+        thread.querySelectorAll('.advisor-retry-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = Number(btn.dataset.retryIndex);
+                const msg = this.state.advisorHistory[idx];
+                if (!msg?.retryFor) return;
+                this.state.advisorHistory.splice(idx - 1, 2);
+                this.sendAdvisorMessage(msg.retryFor);
+            });
+        });
         thread.scrollTop = thread.scrollHeight;
     }
 
@@ -334,7 +347,29 @@ class ScentMateApp {
             const reply = await askScentAdvisor(messagesForApi, context, this.state.currentLang);
             this.state.advisorHistory[placeholderIndex] = { role: 'assistant', content: reply };
         } catch (error) {
-            this.state.advisorHistory[placeholderIndex] = { role: 'assistant', content: t.error, error: true };
+            console.error('[advisor] request failed', error);
+            const isEn = this.state.currentLang === 'en';
+            const code = error?.code || error?.message || '';
+            let detail = '';
+            if (code.startsWith('ai-http-')) {
+                const status = code.slice(8);
+                detail = isEn ? `Server returned ${status}.` : `服务器返回 ${status}。`;
+                if (status === '500') detail += isEn ? ' AI proxy env vars may be missing.' : ' AI 代理的环境变量可能未配置。';
+                if (status === '429') detail += isEn ? ' Rate limit hit, wait a moment.' : ' 速率被限流，稍等几秒再试。';
+                if (status === '401' || status === '403') detail += isEn ? ' API key invalid or expired.' : ' API key 失效或权限不足。';
+            } else if (code === 'advisor-empty-reply') {
+                detail = isEn ? 'Model returned an empty reply, try rephrasing.' : '模型返回了空回复，换个问法再试一下。';
+            } else if (!navigator.onLine) {
+                detail = isEn ? 'Looks like you are offline.' : '看起来你离线了。';
+            } else {
+                detail = isEn ? 'Network or unknown error.' : '网络或未知错误。';
+            }
+            this.state.advisorHistory[placeholderIndex] = {
+                role: 'assistant',
+                content: `${t.error}\n${detail}`,
+                error: true,
+                retryFor: this.state.advisorHistory[placeholderIndex - 1]?.content || ''
+            };
         } finally {
             this._advisorPending = false;
             if (sendBtn) {

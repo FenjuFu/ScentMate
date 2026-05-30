@@ -879,10 +879,24 @@ export async function askScentAdvisor(history, context, lang = 'zh') {
         body: JSON.stringify(payload)
     });
 
-    if (!response.ok) throw new Error(`ai-http-${response.status}`);
+    if (!response.ok) {
+        let detail = '';
+        try {
+            const body = await response.text();
+            detail = body.slice(0, 300);
+        } catch {}
+        const err = new Error(`ai-http-${response.status}`);
+        err.code = `ai-http-${response.status}`;
+        err.detail = detail;
+        throw err;
+    }
     const data = await response.json();
     const content = data?.choices?.[0]?.message?.content || '';
-    if (!content.trim()) throw new Error('advisor-empty-reply');
+    if (!content.trim()) {
+        const err = new Error('advisor-empty-reply');
+        err.code = 'advisor-empty-reply';
+        throw err;
+    }
     return content.trim();
 }
 

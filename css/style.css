@@ -1599,6 +1599,21 @@ main {
     border-color: #f4caca;
     color: #b14242;
 }
+.advisor-retry-btn {
+    display: inline-block;
+    margin-top: 8px;
+    background: transparent;
+    border: 1px solid #d88787;
+    color: #b14242;
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.advisor-retry-btn:hover {
+    background: #b14242;
+    color: #fff;
+}
 .advisor-empty {
     text-align: center;
     color: #b0a99e;
