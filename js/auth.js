@@ -75,7 +75,17 @@ export class AuthSystem {
     bindEvents() {
         document.getElementById('btn-login-tab').addEventListener('click', () => this.switchTab('login'));
         document.getElementById('btn-register-tab').addEventListener('click', () => this.switchTab('register'));
-        document.getElementById('btn-auth-submit').addEventListener('click', () => this.handleSubmit());
+        const authForm = document.getElementById('auth-form');
+        if (authForm) {
+            authForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleSubmit();
+            });
+        }
+        document.getElementById('btn-auth-submit').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.handleSubmit();
+        });
         document.getElementById('btn-google-signin').addEventListener('click', () => this.handleGoogle());
         document.getElementById('btn-forgot-password').addEventListener('click', () => this.handleForgotPassword());
     }
