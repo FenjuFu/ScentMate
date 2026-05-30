@@ -167,19 +167,24 @@ class ScentMateApp {
     }
 
     initHomeAnimation() {
-        const container = document.getElementById('hero-orbs');
+        this.populateOrbs('hero-orbs', 'hero-orb', { count: 14, sizeMin: 60, sizeMax: 280, durMin: 6, durMax: 14 });
+        this.populateOrbs('collection-orbs', 'collection-orb', { count: 6, sizeMin: 140, sizeMax: 320, durMin: 10, durMax: 18 });
+    }
+
+    populateOrbs(containerId, orbClass, { count, sizeMin, sizeMax, durMin, durMax }) {
+        const container = document.getElementById(containerId);
         if (!container || container.childElementCount > 0) return;
         const colors = Object.values(PROFILE_COLORS);
-        for (let i = 0; i < 14; i++) {
+        for (let i = 0; i < count; i++) {
             const orb = document.createElement('div');
-            orb.className = 'hero-orb';
-            const size = 60 + Math.random() * 220;
+            orb.className = orbClass;
+            const size = sizeMin + Math.random() * (sizeMax - sizeMin);
             orb.style.width = `${size}px`;
             orb.style.height = `${size}px`;
             orb.style.background = colors[i % colors.length];
             orb.style.left = `${Math.random() * 100}%`;
             orb.style.top = `${Math.random() * 100}%`;
-            orb.style.setProperty('--orb-dur', `${6 + Math.random() * 8}s`);
+            orb.style.setProperty('--orb-dur', `${durMin + Math.random() * (durMax - durMin)}s`);
             orb.style.setProperty('--orb-delay', `${-Math.random() * 8}s`);
             container.appendChild(orb);
         }
@@ -354,10 +359,7 @@ class ScentMateApp {
             const msg = activePerfumes.length === 0
                 ? (isReadonlyCollection ? (isEn ? 'This public collection is empty.' : '这个公开收藏夹还是空的。') : t.collection.empty)
                 : t.collection.empty_search;
-            const empty = document.createElement('div');
-            empty.className = 'collection-empty';
-            empty.textContent = msg;
-            container.appendChild(empty);
+            container.appendChild(this.buildEmptyState(msg));
         }
 
         visible.forEach(perfume => {
@@ -365,6 +367,11 @@ class ScentMateApp {
             card.className = 'perfume-card';
 
             const profiles = [...new Set([...perfume.notes.top, ...perfume.notes.middle, ...perfume.notes.base].map(n => this.getProfile(n)))];
+            const primaryNote = perfume.notes.top[0] || perfume.notes.middle[0] || perfume.notes.base[0];
+            const primaryProfile = primaryNote ? this.getProfile(primaryNote) : '其他';
+            const accentColor = PROFILE_COLORS[primaryProfile] || PROFILE_COLORS['其他'];
+            card.style.setProperty('--card-accent', accentColor);
+            card.style.setProperty('--card-tint', `${accentColor}1f`);
             const dots = profiles.map(p => `<span class="note-dot" style="background:${PROFILE_COLORS[p] || PROFILE_COLORS['其他']}" title="${p}"></span>`).join('');
             const brandHtml = perfume.brand ? `<div class="perfume-brand">${perfume.brand}</div>` : '';
 
@@ -985,7 +992,8 @@ class ScentMateApp {
             this.state.publicUsers = publicUsers;
 
             if (publicUsers.length === 0) {
-                container.innerHTML = `<div class="collection-empty">${t.no_public_users}</div>`;
+                container.innerHTML = '';
+                container.appendChild(this.buildEmptyState(t.no_public_users));
                 return;
             }
 
@@ -1061,6 +1069,46 @@ class ScentMateApp {
         } catch (error) {
             container.innerHTML = `<div class="collection-empty">${this.escapeHtml(this.getTranslation().toast.social_load_failed)}</div>`;
         }
+    }
+
+    buildEmptyState(message) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'empty-state';
+        const orbs = document.createElement('div');
+        orbs.className = 'empty-state-orbs';
+        const palette = ['#f6c445', '#e87fa8', '#8d6e63', '#6aa84f', '#b7c2cc', '#d9b5b2'];
+        const positions = [
+            { x: 10, y: 30, size: 38 },
+            { x: 38, y: 8, size: 30 },
+            { x: 58, y: 42, size: 46 },
+            { x: 82, y: 18, size: 28 },
+            { x: 30, y: 58, size: 26 },
+            { x: 72, y: 60, size: 34 }
+        ];
+        positions.forEach((p, i) => {
+            const orb = document.createElement('div');
+            orb.className = 'empty-state-orb';
+            orb.style.width = `${p.size}px`;
+            orb.style.height = `${p.size}px`;
+            orb.style.left = `${p.x}%`;
+            orb.style.top = `${p.y}%`;
+            orb.style.background = palette[i % palette.length];
+            orb.style.setProperty('--orb-delay', `${-i * 0.9}s`);
+            orbs.appendChild(orb);
+        });
+        wrapper.appendChild(orbs);
+        const msg = document.createElement('div');
+        msg.className = 'empty-state-message';
+        msg.textContent = message;
+        wrapper.appendChild(msg);
+        const quotes = this.getTranslation().empty_quotes || [];
+        if (quotes.length) {
+            const quote = document.createElement('div');
+            quote.className = 'empty-state-quote';
+            quote.textContent = `“${quotes[Math.floor(Math.random() * quotes.length)]}”`;
+            wrapper.appendChild(quote);
+        }
+        return wrapper;
     }
 
     escapeHtml(value) {
