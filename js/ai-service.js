@@ -857,12 +857,12 @@ export async function askScentAdvisor(history, context, lang = 'zh') {
     const collectionName = (context?.collectionName || '').toString().slice(0, 60);
 
     const systemContent = lang === 'en'
-        ? `You are a knowledgeable, warm, and concise fragrance advisor on the ScentMate app. The user has a perfume collection — base your replies on that data when possible. Be specific (real perfume names, brands, notes), avoid generic marketing tone, and keep answers tight (under 250 words). Never invent perfumes — if you are not confident, say so. When recommending, prefer well-known and findable releases. If the user's question is unrelated to fragrance, gently steer back to fragrance topics.`
-        : `你是 ScentMate 应用里一位懂行、克制、有温度的香水顾问。用户有一份自己填写的收藏夹，请尽量结合这些数据回答。建议必须具体（真实存在的香水名/品牌/调性），避免广告腔，回答控制在 250 字以内。不要编造香水——没把握就直说。推荐时优先选知名、可查证的作品。如果用户问的内容和香水无关，温和地把话题拉回来。`;
+        ? `You are a knowledgeable, warm, and concise fragrance advisor on the ScentMate app. You are looking at a specific perfume collection (which may belong to the user or to another user whose card they are viewing). Base your replies on this collection's data when possible, and refer to it as "this collection" — do NOT assume the asker owns it. Be specific (real perfume names, brands, notes), avoid generic marketing tone, and keep answers tight (under 250 words). Never invent perfumes — if you are not confident, say so. When recommending, prefer well-known and findable releases. If the question is unrelated to fragrance, gently steer back to fragrance topics.`
+        : `你是 ScentMate 应用里一位懂行、克制、有温度的香水顾问。你正在查看的是一份特定的香水收藏夹（可能属于提问者本人，也可能是另一位用户公开的气味名片），请围绕"这一收藏夹 / 这份名片"回答，不要默认提问者就是收藏夹的主人，避免使用"你的收藏""你喜欢"这类归属性表述。建议必须具体（真实存在的香水名/品牌/调性），避免广告腔，回答控制在 250 字以内。不要编造香水——没把握就直说。推荐时优先选知名、可查证的作品。如果用户问的内容和香水无关，温和地把话题拉回来。`;
 
     const contextSummary = lang === 'en'
-        ? `User collection: ${collectionName || 'unnamed'}.\nPerfume names (${perfumeNames.length}): ${perfumeNames.join(', ') || '(none)'}\nTop soul notes: ${topSoulScents.join(', ') || '(none)'}\nTop co-occurring pairs: ${topPairs.map(p => `${p.source}-${p.target}`).join(', ') || '(none)'}`
-        : `用户收藏夹：${collectionName || '未命名'}。\n已收藏香水（${perfumeNames.length} 瓶）：${perfumeNames.join('，') || '（空）'}\n灵魂香调 Top：${topSoulScents.join('，') || '（无）'}\n共现最强的调性组合：${topPairs.map(p => `${p.source}-${p.target}`).join('，') || '（无）'}`;
+        ? `Collection name: ${collectionName || 'unnamed'}.\nPerfumes in this collection (${perfumeNames.length}): ${perfumeNames.join(', ') || '(none)'}\nTop soul notes: ${topSoulScents.join(', ') || '(none)'}\nTop co-occurring pairs: ${topPairs.map(p => `${p.source}-${p.target}`).join(', ') || '(none)'}`
+        : `收藏夹名称：${collectionName || '未命名'}。\n这一收藏夹里的香水（${perfumeNames.length} 瓶）：${perfumeNames.join('，') || '（空）'}\n灵魂香调 Top：${topSoulScents.join('，') || '（无）'}\n共现最强的调性组合：${topPairs.map(p => `${p.source}-${p.target}`).join('，') || '（无）'}`;
 
     const payload = {
         temperature: 0.6,
