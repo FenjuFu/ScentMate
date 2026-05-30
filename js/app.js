@@ -364,6 +364,10 @@ class ScentMateApp {
             } else {
                 detail = isEn ? 'Network or unknown error.' : '网络或未知错误。';
             }
+            if (error?.detail && typeof error.detail === 'string') {
+                const trimmed = error.detail.replace(/\s+/g, ' ').slice(0, 240);
+                if (trimmed) detail += `\n${trimmed}`;
+            }
             this.state.advisorHistory[placeholderIndex] = {
                 role: 'assistant',
                 content: `${t.error}\n${detail}`,
