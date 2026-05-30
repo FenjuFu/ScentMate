@@ -305,11 +305,26 @@ export class AuthSystem {
         }
 
         const submitBtn = document.getElementById('btn-auth-submit');
+        const originalText = submitBtn.textContent;
+        const t = this.app.getTranslation().auth;
+        const isRegister = this.currentTab !== 'login';
         this._authPending = true;
         submitBtn.disabled = true;
+        submitBtn.textContent = isRegister
+            ? (t.registering || (isEn ? 'Signing up…' : '注册中…'))
+            : (t.logging_in || (isEn ? 'Signing in…' : '登录中…'));
+
+        const timeoutMs = 15000;
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(Object.assign(new Error('auth-timeout'), { code: 'auth/timeout' })), timeoutMs)
+        );
+
         try {
             if (this.currentTab === 'login') {
-                await signInWithEmailAndPassword(auth, email, password);
+                await Promise.race([
+                    signInWithEmailAndPassword(auth, email, password),
+                    timeoutPromise
+                ]);
                 this.app.showToast((isEn ? 'Welcome back, ' : '欢迎回来，') + this.displayName(auth.currentUser), 'success');
             } else {
                 const username = document.getElementById('auth-username').value.trim();
@@ -318,7 +333,10 @@ export class AuthSystem {
                     this.app.showToast(isEn ? 'Passwords do not match!' : '两次输入的密码不一致', 'error');
                     return;
                 }
-                const cred = await createUserWithEmailAndPassword(auth, email, password);
+                const cred = await Promise.race([
+                    createUserWithEmailAndPassword(auth, email, password),
+                    timeoutPromise
+                ]);
                 if (username) await updateProfile(cred.user, { displayName: username });
                 this.updateUserNav();
                 try { await sendEmailVerification(cred.user); } catch (e) { /* non-blocking */ }
@@ -330,6 +348,7 @@ export class AuthSystem {
         } finally {
             this._authPending = false;
             submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
         }
     }
 
@@ -734,6 +753,7 @@ export class AuthSystem {
             'auth/operation-not-allowed': '该登录方式未在 Firebase 控制台启用',
             'auth/unauthorized-domain': '当前域名未加入 Firebase 授权域名列表',
             'auth/requires-recent-login': '出于安全考虑，请重新登录后再执行此操作',
+            'auth/timeout': '请求超时，请检查网络后重试',
             'permission-denied': 'Firestore 权限不足：大概率是公开资料规则还没部署',
             'unavailable': 'Firestore 服务暂时不可用，请稍后重试'
         };
@@ -751,6 +771,7 @@ export class AuthSystem {
             'auth/operation-not-allowed': 'This sign-in method is not enabled in Firebase',
             'auth/unauthorized-domain': 'This domain is not in the Firebase authorized list',
             'auth/requires-recent-login': 'For security, please sign in again before doing this',
+            'auth/timeout': 'Request timed out, please check your connection and retry',
             'permission-denied': 'Firestore permission denied: public profile rules are likely not deployed yet',
             'unavailable': 'Firestore is temporarily unavailable, please try again'
         };
