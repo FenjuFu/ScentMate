@@ -51,6 +51,7 @@ export class ScentVisualization {
             .attr("height", height)
             .call(d3.zoom().on("zoom", (event) => {
                 g.attr("transform", event.transform);
+                d3.select(".tooltip").style("opacity", 0);
             }))
             .append("g");
             
