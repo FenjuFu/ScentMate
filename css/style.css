@@ -1539,6 +1539,48 @@ main {
     object-fit: cover; border: 1px solid #eee;
 }
 
+/* Feedback FAB + Modal */
+.feedback-fab {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--brand-orange);
+    color: #fff;
+    border: none;
+    box-shadow: 0 10px 26px rgba(252, 76, 2, 0.32);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 900;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.feedback-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(252, 76, 2, 0.4);
+}
+.feedback-intro {
+    font-size: 13px;
+    color: #777;
+    line-height: 1.7;
+    margin-bottom: 16px;
+}
+.feedback-disclaimer {
+    margin-top: 14px;
+    font-size: 11px;
+    color: #b0b0b0;
+    line-height: 1.5;
+    text-align: center;
+}
+#feedback-form textarea.form-input {
+    font-family: inherit;
+    resize: vertical;
+    min-height: 110px;
+}
+
 /* Toast Notifications */
 #toast-container {
     position: fixed;

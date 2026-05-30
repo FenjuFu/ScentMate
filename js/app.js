@@ -243,6 +243,72 @@ class ScentMateApp {
         document.getElementById('btn-voice-record').addEventListener('click', () => this.startVoiceRecognition());
         document.getElementById('image-input').addEventListener('change', (e) => this.handleImageUpload(e));
         document.getElementById('btn-smart-parse').addEventListener('click', () => this.parseSmartInput());
+
+        // Feedback
+        document.getElementById('btn-open-feedback')?.addEventListener('click', () => this.openFeedbackModal());
+        document.getElementById('feedback-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.submitFeedback();
+        });
+    }
+
+    openFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (!modal) return;
+        modal.classList.add('active');
+        const titleEl = document.getElementById('feedback-title');
+        if (titleEl) setTimeout(() => titleEl.focus(), 50);
+    }
+
+    async submitFeedback() {
+        const isEn = this.state.currentLang === 'en';
+        const t = this.getTranslation().feedback;
+        const titleEl = document.getElementById('feedback-title');
+        const descEl = document.getElementById('feedback-description');
+        const catEl = document.getElementById('feedback-category');
+        const contactEl = document.getElementById('feedback-contact');
+        const submitBtn = document.getElementById('btn-feedback-submit');
+        const title = titleEl.value.trim();
+        const description = descEl.value.trim();
+        if (title.length < 4 || description.length < 10) {
+            this.showToast(t.error_too_short, 'error');
+            return;
+        }
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = t.submitting;
+        try {
+            const submittedBy = this.currentUser
+                ? this.auth.displayName(this.currentUser) + (this.currentUser.email ? ` <${this.currentUser.email}>` : '')
+                : (isEn ? 'guest' : '游客');
+            const response = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title,
+                    description,
+                    category: catEl.value,
+                    contact: contactEl.value.trim(),
+                    lang: this.state.currentLang,
+                    submittedBy
+                })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                this.showToast(t.error_failed, 'error');
+                return;
+            }
+            this.showToast(data.number ? t.success_with_link.replace('{0}', data.number) : t.success, 'success');
+            titleEl.value = '';
+            descEl.value = '';
+            contactEl.value = '';
+            document.getElementById('feedback-modal').classList.remove('active');
+        } catch (error) {
+            this.showToast(t.error_failed, 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
     }
 
     getTranslation() {
