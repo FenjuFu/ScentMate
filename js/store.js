@@ -1,5 +1,5 @@
 import { db, isFirebaseConfigured } from './firebase-config.js';
-import { collection, doc, getDoc, getDocs, query, setDoc, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, query, setDoc, where, addDoc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, increment, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const LS_KEY = 'scent_collections';
 const LEGACY_LS_KEY = 'scent_perfumes';
@@ -277,6 +277,131 @@ export async function loadPublicUsers(currentUser = null) {
             updatedAt: entry.updatedAt || ''
         }));
     });
+}
+
+const CARD_LIKES_COLLECTION = 'cardLikes';
+const CARD_COMMENTS_COLLECTION = 'cardComments';
+const MAX_COMMENT_LEN = 500;
+
+function cardSocialId(ownerUid, collectionId) {
+    return `${ownerUid}_${collectionId}`;
+}
+
+export async function loadCardLikes(ownerUid, collectionId, currentUid = null) {
+    if (!isFirebaseConfigured || !ownerUid || !collectionId) return { count: 0, likedByMe: false };
+    try {
+        const snap = await getDoc(doc(db, CARD_LIKES_COLLECTION, cardSocialId(ownerUid, collectionId)));
+        if (!snap.exists()) return { count: 0, likedByMe: false };
+        const data = snap.data();
+        const likers = Array.isArray(data.likers) ? data.likers : [];
+        return {
+            count: Number.isFinite(data.count) ? data.count : likers.length,
+            likedByMe: currentUid ? likers.includes(currentUid) : false
+        };
+    } catch (error) {
+        return { count: 0, likedByMe: false };
+    }
+}
+
+export async function toggleCardLike(ownerUid, collectionId, currentUser) {
+    if (!isFirebaseConfigured || !currentUser) throw new Error('not-signed-in');
+    if (!currentUser.emailVerified) throw new Error('email-not-verified');
+    const ref = doc(db, CARD_LIKES_COLLECTION, cardSocialId(ownerUid, collectionId));
+    const snap = await getDoc(ref);
+    const data = snap.exists() ? snap.data() : null;
+    const likers = data && Array.isArray(data.likers) ? data.likers : [];
+    const alreadyLiked = likers.includes(currentUser.uid);
+    if (alreadyLiked) {
+        const nextLikers = likers.filter(u => u !== currentUser.uid);
+        await setDoc(ref, {
+            ownerUid,
+            collectionId,
+            likers: nextLikers,
+            count: nextLikers.length
+        }, { merge: true });
+        return { count: nextLikers.length, likedByMe: false };
+    }
+    await setDoc(ref, {
+        ownerUid,
+        collectionId,
+        likers: arrayUnion(currentUser.uid),
+        count: increment(1)
+    }, { merge: true });
+    return { count: (data?.count || likers.length) + 1, likedByMe: true };
+}
+
+export async function loadCardComments(ownerUid, collectionId, currentUid = null) {
+    if (!isFirebaseConfigured || !ownerUid || !collectionId) return [];
+    try {
+        const ref = collection(db, CARD_COMMENTS_COLLECTION);
+        const snap = await getDocs(query(
+            ref,
+            where('cardOwnerUid', '==', ownerUid),
+            where('collectionId', '==', collectionId),
+            orderBy('createdAt', 'desc'),
+            limit(80)
+        ));
+        return snap.docs
+            .map(item => {
+                const data = item.data() || {};
+                const reportedBy = Array.isArray(data.reportedBy) ? data.reportedBy : [];
+                const isHidden = !!data.isHidden;
+                const isAuthor = currentUid && data.authorUid === currentUid;
+                if (isHidden && !isAuthor) return null;
+                return {
+                    id: item.id,
+                    cardOwnerUid: data.cardOwnerUid,
+                    collectionId: data.collectionId,
+                    authorUid: data.authorUid,
+                    authorName: data.authorName || 'Scent Explorer',
+                    authorPhotoURL: data.authorPhotoURL || '',
+                    text: data.text || '',
+                    createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : (typeof data.createdAt === 'number' ? data.createdAt : Date.now()),
+                    isHidden,
+                    reportedByMe: currentUid ? reportedBy.includes(currentUid) : false,
+                    isAuthor
+                };
+            })
+            .filter(Boolean);
+    } catch (error) {
+        return [];
+    }
+}
+
+export async function postCardComment(ownerUid, collectionId, currentUser, text, displayName, photoURL = '') {
+    if (!isFirebaseConfigured || !currentUser) throw new Error('not-signed-in');
+    if (!currentUser.emailVerified) throw new Error('email-not-verified');
+    const clean = String(text || '').trim().slice(0, MAX_COMMENT_LEN);
+    if (clean.length < 2) throw new Error('comment-too-short');
+    const ref = collection(db, CARD_COMMENTS_COLLECTION);
+    const docRef = await addDoc(ref, {
+        cardOwnerUid: ownerUid,
+        collectionId,
+        authorUid: currentUser.uid,
+        authorName: displayName || 'Scent Explorer',
+        authorPhotoURL: photoURL || '',
+        text: clean,
+        createdAt: serverTimestamp(),
+        isHidden: false,
+        reportedBy: []
+    });
+    return docRef.id;
+}
+
+export async function reportCardComment(commentId, currentUser) {
+    if (!isFirebaseConfigured || !currentUser) throw new Error('not-signed-in');
+    if (!currentUser.emailVerified) throw new Error('email-not-verified');
+    const ref = doc(db, CARD_COMMENTS_COLLECTION, commentId);
+    await updateDoc(ref, {
+        isHidden: true,
+        reportedBy: arrayUnion(currentUser.uid)
+    });
+}
+
+export async function deleteCardComment(commentId) {
+    if (!isFirebaseConfigured) throw new Error('not-configured');
+    const ref = doc(db, CARD_COMMENTS_COLLECTION, commentId);
+    await deleteDoc(ref);
 }
 
 export async function savePerfumes(user, collections, visibilitySettings = DEFAULT_VISIBILITY_SETTINGS) {

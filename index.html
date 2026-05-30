@@ -89,6 +89,30 @@
                 <ul class="stat-list" id="stat-top-pairs"></ul>
             </div>
             
+            <div class="card-social" id="card-social" hidden>
+                <div class="card-social-likes">
+                    <button type="button" class="card-like-btn" id="btn-card-like" aria-pressed="false">
+                        <span class="card-like-icon" aria-hidden="true"></span>
+                        <span class="card-like-count" id="card-like-count">0</span>
+                    </button>
+                    <span class="card-social-hint" id="card-like-hint" data-i18n="social_card.like_hint">登录并验证邮箱后可点赞</span>
+                </div>
+                <div class="card-comments">
+                    <div class="card-comments-header">
+                        <span class="card-comments-title" data-i18n="social_card.comments_title">留言</span>
+                        <span class="card-comments-count" id="card-comments-count">0</span>
+                    </div>
+                    <div class="card-comments-list" id="card-comments-list"></div>
+                    <form class="card-comment-form" id="card-comment-form" novalidate>
+                        <textarea class="form-input" id="card-comment-input" rows="2" maxlength="500" placeholder="说点什么…" data-i18n-placeholder="social_card.comment_placeholder"></textarea>
+                        <div class="card-comment-actions">
+                            <span class="card-comment-hint" id="card-comment-hint" data-i18n="social_card.comment_hint">登录并验证邮箱即可留言</span>
+                            <button type="submit" class="btn-primary card-comment-submit" id="btn-card-comment-submit" data-i18n="social_card.comment_submit">发送</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div style="margin-top: 40px; text-align: center;">
                  <p style="font-size: 12px; color:#999;" data-i18n="card.generated_by">基于你收藏的香水成分生成</p>
             </div>

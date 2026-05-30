@@ -5,6 +5,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function verified() {
+      return signedIn() && request.auth.token.email_verified == true;
+    }
+
     function isOwner(userId) {
       return signedIn() && request.auth.uid == userId;
     }
@@ -16,6 +20,24 @@ service cloud.firestore {
     match /publicProfiles/{userId} {
       allow read: if resource.data.isPublic == true || isOwner(userId);
       allow create, update, delete: if isOwner(userId);
+    }
+
+    match /cardLikes/{docId} {
+      allow read: if true;
+      allow create, update: if verified();
+      allow delete: if false;
+    }
+
+    match /cardComments/{commentId} {
+      allow read: if resource.data.isHidden == false || isOwner(resource.data.authorUid);
+      allow create: if verified()
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.isHidden == false
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 500
+        && request.resource.data.text.size() >= 2;
+      allow update: if verified();
+      allow delete: if isOwner(resource.data.authorUid);
     }
   }
 }

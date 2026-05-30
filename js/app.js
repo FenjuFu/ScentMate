@@ -2,7 +2,7 @@ import { DB, ALL_INGREDIENTS, SCENT_TRANSLATIONS, TRANSLATIONS, PROFILE_COLORS }
 import { AuthSystem } from './auth.js';
 import { ScentVisualization } from './viz.js';
 import { buildFallbackIdentity, generateCollectionIdentity, generateCollectionMusicPairing } from './ai-service.js';
-import { createCollection, loadLocalSync, loadPerfumes, loadPublicUsers, savePerfumes } from './store.js';
+import { createCollection, loadLocalSync, loadPerfumes, loadPublicUsers, savePerfumes, loadCardLikes, toggleCardLike, loadCardComments, postCardComment, reportCardComment, deleteCardComment } from './store.js';
 
 const DEFAULT_PERFUMES = [
     { id: 1, name: "蓦岚 青藤", brand: "", notes: { top: ["苦橙", "罗勒"], middle: ["常春藤"], base: ["小豆蔻", "橡木苔"] } },
@@ -356,7 +356,7 @@ class ScentMateApp {
         if (viewId === 'collection') this.state.collectionProfile = null;
         if (viewId === 'card') this.state.cardProfile = null;
         if (viewId === 'collection') this.renderPerfumeList();
-        if (viewId === 'card') this.viz.renderCard();
+        if (viewId === 'card') { this.viz.renderCard(); this.renderCardSocial(); }
         if (viewId === 'social') this.renderSocial();
         if (viewId === 'profile') this.auth.renderProfileView();
     }
@@ -1040,6 +1040,177 @@ class ScentMateApp {
         if (navItem) navItem.classList.add('active');
         this.state.currentView = 'card';
         this.viz.renderCard();
+        this.renderCardSocial();
+    }
+
+    bindCardSocialOnce() {
+        if (this._cardSocialBound) return;
+        this._cardSocialBound = true;
+        document.getElementById('btn-card-like')?.addEventListener('click', () => this.handleCardLike());
+        document.getElementById('card-comment-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleCardCommentSubmit();
+        });
+    }
+
+    async renderCardSocial() {
+        this.bindCardSocialOnce();
+        const block = document.getElementById('card-social');
+        const profile = this.state.cardProfile;
+        if (!block) return;
+        if (!profile || !profile.uid || !profile.collectionId) {
+            block.hidden = true;
+            return;
+        }
+        block.hidden = false;
+        const t = this.getTranslation().social_card;
+        const likeBtn = document.getElementById('btn-card-like');
+        const likeCount = document.getElementById('card-like-count');
+        const likeHint = document.getElementById('card-like-hint');
+        const commentsList = document.getElementById('card-comments-list');
+        const commentsCount = document.getElementById('card-comments-count');
+        const commentInput = document.getElementById('card-comment-input');
+        const commentSubmit = document.getElementById('btn-card-comment-submit');
+        const commentHint = document.getElementById('card-comment-hint');
+
+        const verified = !!this.currentUser?.emailVerified;
+        const signedIn = !!this.currentUser;
+        likeBtn.disabled = !verified;
+        commentSubmit.disabled = !verified;
+        commentInput.disabled = !verified;
+        likeHint.style.display = verified ? 'none' : 'inline';
+        commentHint.style.display = verified ? 'none' : 'inline';
+        if (!signedIn) {
+            likeHint.textContent = t.like_hint;
+            commentHint.textContent = t.comment_hint;
+        } else if (!verified) {
+            likeHint.textContent = t.like_need_verify;
+            commentHint.textContent = t.comment_need_verify;
+        }
+
+        const currentUid = this.currentUser?.uid || null;
+        const [likeState, comments] = await Promise.all([
+            loadCardLikes(profile.uid, profile.collectionId, currentUid),
+            loadCardComments(profile.uid, profile.collectionId, currentUid)
+        ]);
+
+        likeCount.textContent = String(likeState.count || 0);
+        likeBtn.setAttribute('aria-pressed', likeState.likedByMe ? 'true' : 'false');
+
+        commentsCount.textContent = String(comments.length || 0);
+        if (comments.length === 0) {
+            commentsList.innerHTML = `<div class="card-comments-empty">${this.escapeHtml(t.comments_empty)}</div>`;
+        } else {
+            commentsList.innerHTML = comments.map(c => this.renderCommentItem(c, t)).join('');
+            commentsList.querySelectorAll('[data-comment-action]').forEach(btn => {
+                btn.addEventListener('click', () => this.handleCommentAction(btn.dataset.commentAction, btn.dataset.commentId));
+            });
+        }
+    }
+
+    renderCommentItem(comment, t) {
+        const isEn = this.state.currentLang === 'en';
+        const time = new Date(comment.createdAt);
+        const timeText = time.toLocaleString(isEn ? 'en-US' : 'zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const actions = [];
+        if (this.currentUser?.emailVerified && !comment.isAuthor && !comment.reportedByMe) {
+            actions.push(`<button type="button" data-comment-action="report" data-comment-id="${this.escapeHtml(comment.id)}">${this.escapeHtml(t.comment_report)}</button>`);
+        }
+        if (comment.isAuthor) {
+            actions.push(`<button type="button" data-comment-action="delete" data-comment-id="${this.escapeHtml(comment.id)}">${this.escapeHtml(t.comment_delete)}</button>`);
+        }
+        const hiddenTag = comment.isHidden ? `<div class="card-comment-hidden-tag">${this.escapeHtml(t.comment_hidden_tag)}</div>` : '';
+        return `
+            <div class="card-comment${comment.isHidden ? ' is-hidden' : ''}">
+                ${hiddenTag}
+                <div class="card-comment-header">
+                    <span class="card-comment-author">${this.escapeHtml(comment.authorName)}</span>
+                    <span class="card-comment-time">${this.escapeHtml(timeText)}</span>
+                </div>
+                <div class="card-comment-text">${this.escapeHtml(comment.text)}</div>
+                ${actions.length ? `<div class="card-comment-actions-row">${actions.join('')}</div>` : ''}
+            </div>
+        `;
+    }
+
+    async handleCardLike() {
+        const profile = this.state.cardProfile;
+        const t = this.getTranslation().social_card;
+        if (!profile?.uid || !profile?.collectionId) return;
+        if (!this.currentUser?.emailVerified) {
+            this.showToast(t.like_need_verify, 'error');
+            return;
+        }
+        const likeBtn = document.getElementById('btn-card-like');
+        const likeCount = document.getElementById('card-like-count');
+        likeBtn.disabled = true;
+        try {
+            const result = await toggleCardLike(profile.uid, profile.collectionId, this.currentUser);
+            likeCount.textContent = String(result.count);
+            likeBtn.setAttribute('aria-pressed', result.likedByMe ? 'true' : 'false');
+        } catch (error) {
+            this.showToast(t.like_need_verify, 'error');
+        } finally {
+            likeBtn.disabled = !this.currentUser?.emailVerified;
+        }
+    }
+
+    async handleCardCommentSubmit() {
+        const profile = this.state.cardProfile;
+        const t = this.getTranslation().social_card;
+        if (!profile?.uid || !profile?.collectionId) return;
+        if (!this.currentUser?.emailVerified) {
+            this.showToast(t.comment_need_verify, 'error');
+            return;
+        }
+        const input = document.getElementById('card-comment-input');
+        const submitBtn = document.getElementById('btn-card-comment-submit');
+        const text = input.value.trim();
+        if (text.length < 2) {
+            this.showToast(t.comment_too_short, 'error');
+            return;
+        }
+        submitBtn.disabled = true;
+        try {
+            await postCardComment(
+                profile.uid,
+                profile.collectionId,
+                this.currentUser,
+                text,
+                this.auth.displayName(this.currentUser),
+                this.currentUser.photoURL || ''
+            );
+            input.value = '';
+            this.showToast(t.comment_posted, 'success');
+            await this.renderCardSocial();
+        } catch (error) {
+            this.showToast(t.comment_failed, 'error');
+        } finally {
+            submitBtn.disabled = !this.currentUser?.emailVerified;
+        }
+    }
+
+    async handleCommentAction(action, commentId) {
+        const t = this.getTranslation().social_card;
+        if (action === 'report') {
+            if (!confirm(t.comment_report_confirm)) return;
+            try {
+                await reportCardComment(commentId, this.currentUser);
+                this.showToast(t.comment_reported, 'success');
+                await this.renderCardSocial();
+            } catch (error) {
+                this.showToast(t.comment_failed, 'error');
+            }
+        } else if (action === 'delete') {
+            if (!confirm(t.comment_delete_confirm)) return;
+            try {
+                await deleteCardComment(commentId);
+                this.showToast(t.comment_deleted, 'success');
+                await this.renderCardSocial();
+            } catch (error) {
+                this.showToast(t.comment_failed, 'error');
+            }
+        }
     }
 
     getProfile(note) {
