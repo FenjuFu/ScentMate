@@ -82,10 +82,6 @@ export class AuthSystem {
                 this.handleSubmit();
             });
         }
-        document.getElementById('btn-auth-submit').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.handleSubmit();
-        });
         document.getElementById('btn-google-signin').addEventListener('click', () => this.handleGoogle());
         document.getElementById('btn-forgot-password').addEventListener('click', () => this.handleForgotPassword());
     }
@@ -298,6 +294,7 @@ export class AuthSystem {
     }
 
     async handleSubmit() {
+        if (this._authPending) return;
         const isEn = this.app.state.currentLang === 'en';
         const email = document.getElementById('auth-email').value.trim();
         const password = document.getElementById('auth-password').value;
@@ -308,6 +305,7 @@ export class AuthSystem {
         }
 
         const submitBtn = document.getElementById('btn-auth-submit');
+        this._authPending = true;
         submitBtn.disabled = true;
         try {
             if (this.currentTab === 'login') {
@@ -330,6 +328,7 @@ export class AuthSystem {
         } catch (error) {
             this.app.showToast(this.mapError(error), 'error');
         } finally {
+            this._authPending = false;
             submitBtn.disabled = false;
         }
     }
