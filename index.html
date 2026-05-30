@@ -89,6 +89,8 @@
                 <ul class="stat-list" id="stat-top-pairs"></ul>
             </div>
             
+            <button type="button" class="btn-outline card-advisor-trigger" id="btn-open-advisor" data-i18n="advisor.open">✨ 问 AI 顾问</button>
+
             <div class="card-social" id="card-social" hidden>
                 <div class="card-social-likes">
                     <button type="button" class="card-like-btn" id="btn-card-like" aria-pressed="false">
@@ -127,6 +129,24 @@
         </div>
         <div class="tooltip"></div>
     </section>
+
+    <!-- AI Advisor Chat Modal -->
+    <div class="modal-overlay" id="advisor-modal" style="z-index: 1600;">
+        <div class="modal-content advisor-modal-content" style="width: 640px; height: 80vh;">
+            <div class="modal-header">
+                <span data-i18n="advisor.title">AI 香水顾问</span>
+                <button type="button" class="modal-close">&times;</button>
+            </div>
+            <div class="advisor-subtitle" data-i18n="advisor.subtitle">基于你的收藏夹回答问题，会综合你的灵魂香调、共现关系和填写的香水名进行推荐。</div>
+            <div class="advisor-thread" id="advisor-thread"></div>
+            <div class="advisor-suggestions" id="advisor-suggestions"></div>
+            <form class="advisor-input-row" id="advisor-form" novalidate>
+                <textarea class="form-input advisor-input" id="advisor-input" rows="2" maxlength="600" placeholder="例如：我很喜欢 Le Labo，根据我的口味推荐几款" data-i18n-placeholder="advisor.input_placeholder"></textarea>
+                <button type="submit" class="btn-primary advisor-send" id="btn-advisor-send" data-i18n="advisor.send">发送</button>
+            </form>
+            <div class="advisor-disclaimer" data-i18n="advisor.disclaimer">回答由 AI 生成，仅供参考。</div>
+        </div>
+    </div>
 
     <!-- Combo Search Results Modal -->
     <div class="modal-overlay" id="combo-modal" style="z-index: 1500;">

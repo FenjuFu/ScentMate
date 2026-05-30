@@ -836,6 +836,56 @@ export async function generateCollectionMusicPairing(collection, currentMusicId 
     }
 }
 
+export async function askScentAdvisor(history, context, lang = 'zh') {
+    const safeHistory = (history || [])
+        .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+        .slice(-12)
+        .map(m => ({ role: m.role, content: m.content.slice(0, 2000) }));
+    if (!safeHistory.length || safeHistory[safeHistory.length - 1].role !== 'user') {
+        throw new Error('advisor-need-user-message');
+    }
+
+    const perfumeNames = Array.isArray(context?.perfumes)
+        ? context.perfumes.map(p => (p && p.name) || '').filter(Boolean).slice(0, 24)
+        : [];
+    const topSoulScents = Array.isArray(context?.topSoulScents)
+        ? context.topSoulScents.slice(0, 6).map(s => (typeof s === 'string' ? s : s?.note || ''))
+        : [];
+    const topPairs = Array.isArray(context?.topPairs)
+        ? context.topPairs.slice(0, 6)
+        : [];
+    const collectionName = (context?.collectionName || '').toString().slice(0, 60);
+
+    const systemContent = lang === 'en'
+        ? `You are a knowledgeable, warm, and concise fragrance advisor on the ScentMate app. The user has a perfume collection — base your replies on that data when possible. Be specific (real perfume names, brands, notes), avoid generic marketing tone, and keep answers tight (under 250 words). Never invent perfumes — if you are not confident, say so. When recommending, prefer well-known and findable releases. If the user's question is unrelated to fragrance, gently steer back to fragrance topics.`
+        : `你是 ScentMate 应用里一位懂行、克制、有温度的香水顾问。用户有一份自己填写的收藏夹，请尽量结合这些数据回答。建议必须具体（真实存在的香水名/品牌/调性），避免广告腔，回答控制在 250 字以内。不要编造香水——没把握就直说。推荐时优先选知名、可查证的作品。如果用户问的内容和香水无关，温和地把话题拉回来。`;
+
+    const contextSummary = lang === 'en'
+        ? `User collection: ${collectionName || 'unnamed'}.\nPerfume names (${perfumeNames.length}): ${perfumeNames.join(', ') || '(none)'}\nTop soul notes: ${topSoulScents.join(', ') || '(none)'}\nTop co-occurring pairs: ${topPairs.map(p => `${p.source}-${p.target}`).join(', ') || '(none)'}`
+        : `用户收藏夹：${collectionName || '未命名'}。\n已收藏香水（${perfumeNames.length} 瓶）：${perfumeNames.join('，') || '（空）'}\n灵魂香调 Top：${topSoulScents.join('，') || '（无）'}\n共现最强的调性组合：${topPairs.map(p => `${p.source}-${p.target}`).join('，') || '（无）'}`;
+
+    const payload = {
+        temperature: 0.6,
+        messages: [
+            { role: 'system', content: systemContent },
+            { role: 'system', content: contextSummary },
+            ...safeHistory
+        ]
+    };
+
+    const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) throw new Error(`ai-http-${response.status}`);
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content || '';
+    if (!content.trim()) throw new Error('advisor-empty-reply');
+    return content.trim();
+}
+
 export async function searchPerfumesByNoteCombination(notes, lang = 'zh') {
     const cleanNotes = Array.from(new Set((notes || []).filter(n => typeof n === 'string' && n.trim()))).slice(0, 8);
     if (cleanNotes.length < 2) {

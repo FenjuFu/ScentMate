@@ -3,6 +3,7 @@ import { AuthSystem } from './auth.js';
 import { ScentVisualization } from './viz.js';
 import { buildFallbackIdentity, generateCollectionIdentity, generateCollectionMusicPairing } from './ai-service.js';
 import { createCollection, loadLocalSync, loadPerfumes, loadPublicUsers, savePerfumes, loadCardLikes, toggleCardLike, loadCardComments, postCardComment, reportCardComment, deleteCardComment } from './store.js';
+import { askScentAdvisor } from './ai-service.js';
 
 const DEFAULT_PERFUMES = [
     { id: 1, name: "蓦岚 青藤", brand: "", notes: { top: ["苦橙", "罗勒"], middle: ["常春藤"], base: ["小豆蔻", "橡木苔"] } },
@@ -250,6 +251,114 @@ class ScentMateApp {
             e.preventDefault();
             this.submitFeedback();
         });
+
+        // Advisor
+        document.getElementById('btn-open-advisor')?.addEventListener('click', () => this.openAdvisorModal());
+        document.getElementById('advisor-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = document.getElementById('advisor-input').value;
+            this.sendAdvisorMessage(text);
+        });
+    }
+
+    openAdvisorModal() {
+        const modal = document.getElementById('advisor-modal');
+        if (!modal) return;
+        if (!this.state.advisorHistory) this.state.advisorHistory = [];
+        modal.classList.add('active');
+        this.renderAdvisorThread();
+        this.renderAdvisorSuggestions();
+        setTimeout(() => document.getElementById('advisor-input')?.focus(), 80);
+    }
+
+    renderAdvisorThread() {
+        const thread = document.getElementById('advisor-thread');
+        if (!thread) return;
+        const t = this.getTranslation().advisor;
+        const history = this.state.advisorHistory || [];
+        if (!history.length) {
+            thread.innerHTML = `<div class="advisor-empty">${this.escapeHtml(t.empty)}</div>`;
+            return;
+        }
+        thread.innerHTML = history.map(m => {
+            const cls = m.role === 'user' ? 'user' : `assistant${m.loading ? ' loading' : ''}${m.error ? ' error' : ''}`;
+            return `<div class="advisor-msg ${cls}"><div class="advisor-msg-bubble">${this.escapeHtml(m.content)}</div></div>`;
+        }).join('');
+        thread.scrollTop = thread.scrollHeight;
+    }
+
+    renderAdvisorSuggestions() {
+        const host = document.getElementById('advisor-suggestions');
+        if (!host) return;
+        const t = this.getTranslation().advisor;
+        const history = this.state.advisorHistory || [];
+        if (history.length) {
+            host.innerHTML = '';
+            return;
+        }
+        const suggestions = Array.isArray(t.suggestions) ? t.suggestions : [];
+        host.innerHTML = suggestions.map(s => `<button type="button" class="advisor-suggestion-chip">${this.escapeHtml(s)}</button>`).join('');
+        host.querySelectorAll('.advisor-suggestion-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('advisor-input').value = btn.textContent;
+                this.sendAdvisorMessage(btn.textContent);
+            });
+        });
+    }
+
+    async sendAdvisorMessage(rawText) {
+        const text = String(rawText || '').trim();
+        if (!text) return;
+        if (this._advisorPending) return;
+        const t = this.getTranslation().advisor;
+        if (!this.state.advisorHistory) this.state.advisorHistory = [];
+        this.state.advisorHistory.push({ role: 'user', content: text });
+        const placeholderIndex = this.state.advisorHistory.push({ role: 'assistant', content: t.thinking, loading: true }) - 1;
+        document.getElementById('advisor-input').value = '';
+        this.renderAdvisorThread();
+        this.renderAdvisorSuggestions();
+
+        const sendBtn = document.getElementById('btn-advisor-send');
+        const originalSendText = sendBtn?.textContent;
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.textContent = t.sending;
+        }
+        this._advisorPending = true;
+
+        try {
+            const context = this.buildAdvisorContext();
+            const messagesForApi = this.state.advisorHistory
+                .slice(0, placeholderIndex)
+                .map(m => ({ role: m.role, content: m.content }));
+            const reply = await askScentAdvisor(messagesForApi, context, this.state.currentLang);
+            this.state.advisorHistory[placeholderIndex] = { role: 'assistant', content: reply };
+        } catch (error) {
+            this.state.advisorHistory[placeholderIndex] = { role: 'assistant', content: t.error, error: true };
+        } finally {
+            this._advisorPending = false;
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.textContent = originalSendText;
+            }
+            this.renderAdvisorThread();
+        }
+    }
+
+    buildAdvisorContext() {
+        const data = this.processNetworkData();
+        const meta = this.getCurrentCardCollectionMeta();
+        const topSoulScents = [...data.nodes].sort((a, b) => b.count - a.count).slice(0, 6).map(n => n.id);
+        const topPairs = [...data.links].sort((a, b) => b.value - a.value).slice(0, 6).map(l => ({
+            source: l.source.id || l.source,
+            target: l.target.id || l.target
+        }));
+        return {
+            collectionName: meta?.name || meta?.collectionName || '',
+            perfumes: this.getActiveCardPerfumes() || [],
+            topSoulScents,
+            topPairs
+        };
     }
 
     openFeedbackModal() {
