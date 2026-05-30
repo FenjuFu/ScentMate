@@ -84,8 +84,18 @@ export class ScentVisualization {
             .style("cursor", "pointer")
             .on("mouseover", (event, d) => {
                 const tooltip = d3.select(".tooltip");
+                const sourceId = d.source.id || d.source;
+                const targetId = d.target.id || d.target;
+                const isEn = this.app.state.currentLang === 'en';
+                const sourceDisplay = isEn ? (SCENT_TRANSLATIONS[sourceId] || sourceId) : sourceId;
+                const targetDisplay = isEn ? (SCENT_TRANSLATIONS[targetId] || targetId) : targetId;
+                const coOccurLabel = isEn ? `Co-occurs ${d.value} time${d.value === 1 ? '' : 's'}` : `共现 ${d.value} 次`;
+                const perfumeList = this.findPerfumesWithBothNotes(sourceId, targetId);
+                const perfumeBlock = perfumeList.length
+                    ? `<div style="margin-top:6px;color:#555;"><span style="color:#999;">${isEn ? 'In your collection' : '来自你收藏夹'}：</span>${perfumeList.map(name => this.app.escapeHtml(name)).join('<span style="color:#bbb;"> · </span>')}</div>`
+                    : '';
                 tooltip.style("opacity", 1)
-                       .html(`<strong>${d.source.id} & ${d.target.id}</strong><br/>共现 ${d.value} 次<br/>${this.generatePairingDesc(d.source.id, d.target.id)}`)
+                       .html(`<strong>${this.app.escapeHtml(sourceDisplay)} & ${this.app.escapeHtml(targetDisplay)}</strong><br/>${coOccurLabel}<br/>${this.generatePairingDesc(sourceId, targetId)}${perfumeBlock}`)
                        .style("left", (event.pageX + 10) + "px")
                        .style("top", (event.pageY - 10) + "px");
                 if (!this.isLinkSelected(d)) {
@@ -380,6 +390,17 @@ export class ScentVisualization {
         } finally {
             if (searchBtn) searchBtn.disabled = notes.length < 2;
         }
+    }
+
+    findPerfumesWithBothNotes(noteA, noteB) {
+        const perfumes = this.app.getActiveCardPerfumes();
+        const matches = [];
+        for (const p of perfumes) {
+            const all = new Set([...p.notes.top, ...p.notes.middle, ...p.notes.base]);
+            if (all.has(noteA) && all.has(noteB)) matches.push(p.name);
+            if (matches.length >= 6) break;
+        }
+        return matches;
     }
 
     generatePairingDesc(s, t) {
