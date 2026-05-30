@@ -1038,7 +1038,10 @@ class ScentMateApp {
                         <div class="social-badge-row">${badges}</div>
                         <h3 class="match-name">${this.escapeHtml(m.collectionName)}</h3>
                         <div class="social-owner-line">${this.escapeHtml(m.ownerName || m.name)}</div>
-                        <div class="social-public-stats">${t.public_perfumes}: ${m.publicPerfumeCount} · ${t.public_scents}: ${m.publicScentCount}</div>
+                        <div class="social-public-stats">${[
+                            m.publicCollectionEnabled ? `${t.public_perfumes}: ${m.publicPerfumeCount}` : '',
+                            `${t.public_scents}: ${m.publicScentCount}`
+                        ].filter(Boolean).join(' · ')}</div>
                         ${canScoreMatches ? `<div class="social-common-line">${t.common_likes}: ${this.escapeHtml(commonStr || t.no_overlap)}</div>` : ''}
                     </div>
                     ${canScoreMatches ? `<div class="match-score"><span class="score-val">${m.score}%</span><span class="score-label">${t.match_score}</span></div>` : ''}
