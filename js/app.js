@@ -198,9 +198,15 @@ class ScentMateApp {
         document.getElementById('btn-add-perfume').addEventListener('click', () => this.openAddModal());
         document.getElementById('btn-card-change-music')?.addEventListener('click', () => this.refreshActiveCollectionMusic());
 
-        document.getElementById('collection-search').addEventListener('input', (e) => {
+        const searchInput = document.getElementById('collection-search');
+        searchInput.addEventListener('input', (e) => {
             this.state.searchQuery = e.target.value.trim().toLowerCase();
             this.renderPerfumeList();
+        });
+        searchInput.addEventListener('focus', (e) => {
+            if (!this.state.searchQuery && e.target.value) {
+                e.target.value = '';
+            }
         });
         
         // Modal closes
