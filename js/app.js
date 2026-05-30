@@ -157,6 +157,8 @@ class ScentMateApp {
 
     init() {
         this.updateTexts();
+        const collectionSearch = document.getElementById('collection-search');
+        if (collectionSearch) collectionSearch.value = '';
         this.renderPerfumeList();
         this.initPicker();
         this.initHomeAnimation();
