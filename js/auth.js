@@ -335,14 +335,34 @@ export class AuthSystem {
     }
 
     async handleGoogle() {
+        if (this._googlePending) return;
         const isEn = this.app.state.currentLang === 'en';
+        const ua = navigator.userAgent || '';
+        const isInAppBrowser = /MicroMessenger|WeiBo|QQ\/|MQQBrowser|DingTalk|Alipay/i.test(ua);
+        if (isInAppBrowser) {
+            this.app.showToast(isEn
+                ? 'Google sign-in is blocked inside this in-app browser. Please open scent-mate.com in Chrome / Safari and try again.'
+                : '当前内嵌浏览器不支持 Google 登录。请在 Chrome / Safari 等独立浏览器中打开 scent-mate.com 后重试。', 'info');
+            return;
+        }
+        const btn = document.getElementById('btn-google-signin');
+        this._googlePending = true;
+        if (btn) btn.disabled = true;
         try {
             const provider = new GoogleAuthProvider();
             await signInWithPopup(auth, provider);
             this.app.showToast((isEn ? 'Welcome, ' : '欢迎，') + this.displayName(auth.currentUser), 'success');
             this.closeModal();
         } catch (error) {
-            this.app.showToast(this.mapError(error), 'error');
+            const code = error && error.code ? error.code : '';
+            if (code === 'auth/cancelled-popup-request' || code === 'auth/popup-closed-by-user') {
+                // user-induced cancellation, stay silent
+            } else {
+                this.app.showToast(this.mapError(error), 'error');
+            }
+        } finally {
+            this._googlePending = false;
+            if (btn) btn.disabled = false;
         }
     }
 
