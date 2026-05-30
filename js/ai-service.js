@@ -835,3 +835,60 @@ export async function generateCollectionMusicPairing(collection, currentMusicId 
         return fallback;
     }
 }
+
+export async function searchPerfumesByNoteCombination(notes, lang = 'zh') {
+    const cleanNotes = Array.from(new Set((notes || []).filter(n => typeof n === 'string' && n.trim()))).slice(0, 8);
+    if (cleanNotes.length < 2) {
+        throw new Error('combo-need-two');
+    }
+    const displayNotes = lang === 'en'
+        ? cleanNotes.map(n => SCENT_TRANSLATIONS[n] || n)
+        : cleanNotes;
+
+    const payload = {
+        temperature: 0.4,
+        messages: [
+            {
+                role: 'system',
+                content: lang === 'en'
+                    ? 'You are a knowledgeable perfume reviewer. Given a set of fragrance notes, suggest real perfumes that prominently feature ALL of those notes together (or as close to all as realistically possible). Prefer well-known and verifiable releases. Return JSON only, with the shape {"results": [{"name": "...", "brand": "...", "reason": "one short sentence explaining how this perfume uses these notes"}]}. If you cannot find any confident match, return {"results": []}. Provide at most 6 suggestions, ordered by how strongly they match the combo. Do not invent perfumes — only list ones you are confident exist.'
+                    : '你是熟悉香水的资深评测者。给你一组香气成分，请列出真实存在、并且明显同时含有这些成分（或尽可能接近全部）的香水。请优先推荐知名度较高、可查证的作品。只返回 JSON，结构为 {"results": [{"name": "...", "brand": "...", "reason": "一句话说明这款香水如何呈现这些气味"}]}。如果没有把握，返回 {"results": []}。最多 6 条结果，按匹配度排序。不要编造香水——只列你确信存在的。'
+            },
+            {
+                role: 'user',
+                content: JSON.stringify({
+                    lang,
+                    notes: cleanNotes,
+                    displayNotes,
+                    instruction: lang === 'en'
+                        ? 'Find perfumes that contain these notes together.'
+                        : '找含有这些气味组合的香水。'
+                })
+            }
+        ]
+    };
+
+    const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        throw new Error(`ai-http-${response.status}`);
+    }
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content || '';
+    const parsed = extractJson(content);
+    if (!parsed || !Array.isArray(parsed.results)) {
+        throw new Error('ai-invalid-json');
+    }
+    return parsed.results
+        .map(item => ({
+            name: typeof item.name === 'string' ? item.name.trim() : '',
+            brand: typeof item.brand === 'string' ? item.brand.trim() : '',
+            reason: typeof item.reason === 'string' ? item.reason.trim() : ''
+        }))
+        .filter(item => item.name)
+        .slice(0, 6);
+}

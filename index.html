@@ -93,9 +93,31 @@
                  <p style="font-size: 12px; color:#999;" data-i18n="card.generated_by">基于你收藏的香水成分生成</p>
             </div>
         </div>
-        <div id="viz-container"></div>
+        <div id="viz-container">
+            <div class="viz-selection-bar" id="viz-selection-bar" hidden>
+                <div class="viz-selection-label" data-i18n="card.combo_label">已选气味</div>
+                <div class="viz-selection-chips" id="viz-selection-chips"></div>
+                <button type="button" class="btn-primary viz-selection-search" id="btn-viz-combo-search" data-i18n="card.combo_search">搜索这组组合的香水</button>
+                <button type="button" class="viz-selection-clear" id="btn-viz-combo-clear" data-i18n="card.combo_clear">清空</button>
+            </div>
+        </div>
         <div class="tooltip"></div>
     </section>
+
+    <!-- Combo Search Results Modal -->
+    <div class="modal-overlay" id="combo-modal" style="z-index: 1500;">
+        <div class="modal-content" style="width: 640px;">
+            <div class="modal-header">
+                <span data-i18n="card.combo_modal_title">组合可能匹配的香水</span>
+                <button type="button" class="modal-close">&times;</button>
+            </div>
+            <div class="combo-modal-subtitle" id="combo-modal-subtitle"></div>
+            <div class="combo-modal-body" id="combo-modal-body"></div>
+            <div class="combo-modal-footer">
+                <span class="combo-modal-disclaimer" data-i18n="card.combo_disclaimer">结果由 AI 推测生成，可能不完全准确，建议进一步核实。</span>
+            </div>
+        </div>
+    </div>
 
     <!-- Social View -->
     <section id="view-social" class="view-section">
