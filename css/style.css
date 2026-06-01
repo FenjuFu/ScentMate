@@ -1567,6 +1567,68 @@ main {
     object-fit: cover; border: 1px solid #eee;
 }
 
+/* AI Lookup Preview */
+.ai-preview-confidence {
+    display: inline-block;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+.ai-preview-confidence.high { background: #e2f4e8; color: #2e7d32; }
+.ai-preview-confidence.medium { background: #fff3e0; color: #c98a4b; }
+.ai-preview-confidence.low { background: #fdeaea; color: #b14242; }
+.ai-preview-summary {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #555;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    background: #faf6f1;
+    border-radius: 8px;
+    border: 1px solid #f0e8df;
+}
+.ai-preview-notes {
+    margin-bottom: 18px;
+}
+.ai-preview-note-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f4ece4;
+}
+.ai-preview-note-row:last-child { border-bottom: none; }
+.ai-preview-note-label {
+    font-size: 13px;
+    color: #888;
+    width: 50px;
+    flex-shrink: 0;
+}
+.ai-preview-note-list {
+    font-size: 14px;
+    color: #444;
+    flex: 1;
+    word-break: break-word;
+}
+.ai-preview-note-empty {
+    color: #c0b5a8;
+    font-style: italic;
+}
+.ai-preview-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+.ai-preview-disclaimer {
+    font-size: 11px;
+    color: #b0a99e;
+    line-height: 1.5;
+    text-align: center;
+}
+
 /* AI Advisor */
 .card-advisor-trigger {
     display: block;

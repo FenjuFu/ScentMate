@@ -854,20 +854,24 @@ export async function lookupPerfumeNotes(name, brand, lang = 'zh') {
 1) Identify the perfume the user most likely means. If the input is ambiguous or you are not confident, leave fields empty — do NOT guess.
 2) Return its real, publicly known notes split into top / middle / base. Use Chinese ingredient names (short, single-term like 血橙, 青豌豆, 降龙涎香醚, 鸢尾花, 白松香). Prefer the names from the provided dictionary when they fit; if the actual note is outside the dictionary write it out anyway — accuracy beats dictionary-matching.
 
-Output strict JSON only: {"brand_canonical": "...", "name_canonical": "...", "top": [...], "middle": [...], "base": [...]}.
+Output strict JSON only: {"brand_canonical": "...", "name_canonical": "...", "summary": "...", "confidence": "high|medium|low", "top": [...], "middle": [...], "base": [...]}.
 - brand_canonical: the brand's most commonly used Chinese name (or its original Western name if no Chinese name exists). Empty string if unsure.
 - name_canonical: the perfume's commonly used Chinese name. Empty string if unsure.
+- summary: 1-2 short Chinese sentences explaining which perfume you matched (brand + name + brief identifier like "调香师 / 系列 / 发布年份") and your confidence basis. If unsure, say so in summary.
+- confidence: your honest confidence — "high" if you've definitely seen this exact release, "medium" if you matched by family/series, "low" if you're guessing.
 - 2-6 notes per layer.
-- If unsure overall, return empty arrays AND empty canonical strings. Do not invent perfumes.`
+- If confidence is "low" or unsure overall, return empty arrays AND empty canonical strings. Do not invent perfumes.`
         : `你是熟悉香水的资深成分编辑。用户给的品牌 / 香水名可能拼错、不完整、缩写或中英混排。请做两件事：
 1) 推断他最有可能指的是哪一款香水。如果不确定或有歧义，相关字段留空——不要瞎猜。
 2) 输出该香水**真实公开记录**的前调 / 中调 / 后调。请用简短的中文成分名（如：血橙、青豌豆、降龙涎香醚、鸢尾花、白松香）。**字典只是参考**：能对上就用字典词，对不上的真实成分直接写出来，准确性比对齐字典更重要。
 
-严格只输出 JSON：{"brand_canonical": "...", "name_canonical": "...", "top": [...], "middle": [...], "base": [...]}。
+严格只输出 JSON：{"brand_canonical": "...", "name_canonical": "...", "summary": "...", "confidence": "high|medium|low", "top": [...], "middle": [...], "base": [...]}。
 - brand_canonical：该品牌最常用的中文名（如果没有公认中文名就用原文）。不确定就空字符串。
 - name_canonical：该香水最常用的中文名。不确定就空字符串。
+- summary：1-2 句中文，说明你判断的是哪一款香水（品牌 + 名字 + 可识别的辅助信息，如调香师 / 系列 / 发布年份），以及你判断的依据。没把握就直说"不确定"。
+- confidence：诚实评估自己的确信度——"high"（你确定见过这款发布）/"medium"（按家族/系列推断）/"low"（基本是猜的）。
 - 每层 2-6 个成分。
-- 如果整体没把握，请同时把数组和 canonical 都置空。不要编造香水。`;
+- 如果 confidence 是 "low" 或整体没把握，请同时把数组和 canonical 置空，不要编造香水。`;
 
     const payload = {
         temperature: 0.2,
@@ -936,9 +940,17 @@ Output strict JSON only: {"brand_canonical": "...", "name_canonical": "...", "to
         return v.trim().replace(/^["「『"]+|["」』"]+$/g, '').slice(0, 60);
     };
 
+    const cleanConfidence = (v) => {
+        const s = String(v || '').trim().toLowerCase();
+        if (s === 'high' || s === 'medium' || s === 'low') return s;
+        return 'medium';
+    };
+
     return {
         brandCanonical: cleanCanonical(parsed.brand_canonical),
         nameCanonical: cleanCanonical(parsed.name_canonical),
+        summary: typeof parsed.summary === 'string' ? parsed.summary.trim().slice(0, 400) : '',
+        confidence: cleanConfidence(parsed.confidence),
         top: normalize(parsed.top),
         middle: normalize(parsed.middle),
         base: normalize(parsed.base)

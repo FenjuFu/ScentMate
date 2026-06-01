@@ -1051,24 +1051,7 @@ class ScentMateApp {
                 this.showToast(t.ai_lookup_no_match, 'info');
                 return;
             }
-            this.state.tempNotes = {
-                top: new Set(result.top),
-                middle: new Set(result.middle),
-                base: new Set(result.base)
-            };
-            this.renderSelectedNotes();
-            document.querySelector('.tab-btn[data-tab="manual"]').click();
-            this.showToast((t.ai_lookup_success || 'Filled {0}').replace('{0}', String(total)), 'success');
-
-            // Auto-correct brand / name if AI returned canonical names that materially differ
-            const corrections = this.applyAiCorrections(name, brand, result.nameCanonical, result.brandCanonical);
-            if (corrections.length) {
-                const isEn = this.state.currentLang === 'en';
-                const note = isEn
-                    ? `Auto-corrected ${corrections.join(' & ')}.`
-                    : `已自动修正${corrections.join('与')}。`;
-                this.showToast(note, 'info');
-            }
+            this.showAiLookupPreview({ originalName: name, originalBrand: brand, result });
         } catch (error) {
             console.error('[ai-lookup] failed', error);
             this.showToast(t.ai_lookup_failed, 'error');
@@ -1076,6 +1059,80 @@ class ScentMateApp {
             this._aiLookupPending = false;
             btn.disabled = false;
             btn.textContent = originalText;
+        }
+    }
+
+    showAiLookupPreview({ originalName, originalBrand, result }) {
+        const t = this.getTranslation().modal;
+        const isEn = this.state.currentLang === 'en';
+        const modal = document.getElementById('ai-lookup-preview-modal');
+        if (!modal) return;
+
+        const confidenceEl = document.getElementById('ai-preview-confidence');
+        const summaryEl = document.getElementById('ai-preview-summary');
+        const notesEl = document.getElementById('ai-preview-notes');
+
+        const confLabelKey = `confidence_${result.confidence || 'medium'}`;
+        confidenceEl.className = `ai-preview-confidence ${result.confidence || 'medium'}`;
+        confidenceEl.textContent = t[confLabelKey] || result.confidence;
+
+        const headline = [result.brandCanonical, result.nameCanonical].filter(Boolean).join(' · ');
+        const summaryPieces = [];
+        if (headline) summaryPieces.push(headline);
+        if (result.summary) summaryPieces.push(result.summary);
+        summaryEl.textContent = summaryPieces.join(isEn ? ' — ' : ' — ') || (isEn ? '(no summary)' : '（无说明）');
+
+        const renderLayer = (labelKey, list) => {
+            const items = list && list.length
+                ? list.map(n => this.escapeHtml(n)).join(' · ')
+                : `<span class="ai-preview-note-empty">${isEn ? '(empty)' : '（无）'}</span>`;
+            return `<div class="ai-preview-note-row"><span class="ai-preview-note-label">${this.escapeHtml(t[labelKey] || labelKey)}</span><span class="ai-preview-note-list">${items}</span></div>`;
+        };
+        notesEl.innerHTML = renderLayer('top_notes', result.top) + renderLayer('middle_notes', result.middle) + renderLayer('base_notes', result.base);
+
+        modal.classList.add('active');
+        this.bindAiPreviewOnce();
+        this._pendingAiLookup = { originalName, originalBrand, result };
+    }
+
+    bindAiPreviewOnce() {
+        if (this._aiPreviewBound) return;
+        this._aiPreviewBound = true;
+        document.getElementById('btn-ai-preview-cancel')?.addEventListener('click', () => {
+            document.getElementById('ai-lookup-preview-modal').classList.remove('active');
+            this._pendingAiLookup = null;
+        });
+        document.getElementById('btn-ai-preview-apply')?.addEventListener('click', () => this.applyPendingAiLookup());
+        const modal = document.getElementById('ai-lookup-preview-modal');
+        modal?.querySelector('.modal-close')?.addEventListener('click', () => {
+            modal.classList.remove('active');
+            this._pendingAiLookup = null;
+        });
+    }
+
+    applyPendingAiLookup() {
+        const pending = this._pendingAiLookup;
+        if (!pending) return;
+        const t = this.getTranslation().modal;
+        const { originalName, originalBrand, result } = pending;
+        const total = result.top.length + result.middle.length + result.base.length;
+        this.state.tempNotes = {
+            top: new Set(result.top),
+            middle: new Set(result.middle),
+            base: new Set(result.base)
+        };
+        this.renderSelectedNotes();
+        document.querySelector('.tab-btn[data-tab="manual"]').click();
+        const corrections = this.applyAiCorrections(originalName, originalBrand, result.nameCanonical, result.brandCanonical);
+        document.getElementById('ai-lookup-preview-modal').classList.remove('active');
+        this._pendingAiLookup = null;
+        this.showToast((t.ai_lookup_success || 'Filled {0}').replace('{0}', String(total)), 'success');
+        if (corrections.length) {
+            const isEn = this.state.currentLang === 'en';
+            const note = isEn
+                ? `Auto-corrected ${corrections.join(' & ')}.`
+                : `已自动修正${corrections.join('与')}。`;
+            this.showToast(note, 'info');
         }
     }
 
