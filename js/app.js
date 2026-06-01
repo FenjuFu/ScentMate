@@ -1000,6 +1000,29 @@ class ScentMateApp {
         }
     }
 
+    applyAiCorrections(originalName, originalBrand, canonicalName, canonicalBrand) {
+        const isEn = this.state.currentLang === 'en';
+        const labelName = isEn ? 'perfume name' : '香水名';
+        const labelBrand = isEn ? 'brand' : '品牌';
+        const corrections = [];
+        const shouldReplace = (orig, canonical) => {
+            if (!canonical) return false;
+            const normalize = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+            const a = normalize(orig);
+            const b = normalize(canonical);
+            return a !== b;
+        };
+        if (shouldReplace(originalName, canonicalName)) {
+            document.getElementById('input-perfume-name').value = canonicalName;
+            corrections.push(labelName);
+        }
+        if (shouldReplace(originalBrand, canonicalBrand)) {
+            document.getElementById('input-perfume-brand').value = canonicalBrand;
+            corrections.push(labelBrand);
+        }
+        return corrections;
+    }
+
     clearTempNotes() {
         const t = this.getTranslation().modal;
         this.state.tempNotes = { top: new Set(), middle: new Set(), base: new Set() };
@@ -1036,6 +1059,16 @@ class ScentMateApp {
             this.renderSelectedNotes();
             document.querySelector('.tab-btn[data-tab="manual"]').click();
             this.showToast((t.ai_lookup_success || 'Filled {0}').replace('{0}', String(total)), 'success');
+
+            // Auto-correct brand / name if AI returned canonical names that materially differ
+            const corrections = this.applyAiCorrections(name, brand, result.nameCanonical, result.brandCanonical);
+            if (corrections.length) {
+                const isEn = this.state.currentLang === 'en';
+                const note = isEn
+                    ? `Auto-corrected ${corrections.join(' & ')}.`
+                    : `已自动修正${corrections.join('与')}。`;
+                this.showToast(note, 'info');
+            }
         } catch (error) {
             console.error('[ai-lookup] failed', error);
             this.showToast(t.ai_lookup_failed, 'error');
