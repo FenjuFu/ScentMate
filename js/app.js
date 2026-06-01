@@ -245,6 +245,7 @@ class ScentMateApp {
         document.getElementById('image-input').addEventListener('change', (e) => this.handleImageUpload(e));
         document.getElementById('btn-smart-parse').addEventListener('click', () => this.parseSmartInput());
         document.getElementById('btn-ai-lookup-notes')?.addEventListener('click', () => this.runAiLookupNotes());
+        document.getElementById('btn-clear-notes')?.addEventListener('click', () => this.clearTempNotes());
 
         // Feedback
         document.getElementById('btn-open-feedback')?.addEventListener('click', () => this.openFeedbackModal());
@@ -997,6 +998,13 @@ class ScentMateApp {
             }
             reader.readAsDataURL(e.target.files[0]);
         }
+    }
+
+    clearTempNotes() {
+        const t = this.getTranslation().modal;
+        this.state.tempNotes = { top: new Set(), middle: new Set(), base: new Set() };
+        this.renderSelectedNotes();
+        this.showToast(t.notes_cleared || 'cleared', 'info');
     }
 
     async runAiLookupNotes() {

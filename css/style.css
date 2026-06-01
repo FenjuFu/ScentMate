@@ -1323,6 +1323,11 @@ main {
     flex-shrink: 0;
 }
 .ai-lookup-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.ai-lookup-clear {
+    font-size: 13px !important;
+    padding: 9px 16px !important;
+    flex-shrink: 0;
+}
 .ai-lookup-hint {
     font-size: 12px;
     color: #aaa;
