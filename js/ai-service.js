@@ -875,6 +875,7 @@ Output strict JSON only: {"brand_canonical": "...", "name_canonical": "...", "su
 
     const payload = {
         temperature: 0.2,
+        search: true,
         messages: [
             {
                 role: 'system',
@@ -909,6 +910,17 @@ Output strict JSON only: {"brand_canonical": "...", "name_canonical": "...", "su
     const content = data?.choices?.[0]?.message?.content || '';
     const parsed = extractJson(content);
     if (!parsed) throw new Error('ai-invalid-json');
+
+    // Perplexity / OpenAI-search both return citations as URL strings array (top-level or in choice).
+    const rawCitations = Array.isArray(data?.citations)
+        ? data.citations
+        : Array.isArray(data?.choices?.[0]?.citations)
+            ? data.choices[0].citations
+            : [];
+    const citations = rawCitations
+        .map(c => typeof c === 'string' ? c : (c?.url || ''))
+        .filter(url => typeof url === 'string' && /^https?:\/\//.test(url))
+        .slice(0, 8);
 
     const ingredientSet = new Set(ingredientNames);
     const normalize = (list) => {
@@ -951,6 +963,7 @@ Output strict JSON only: {"brand_canonical": "...", "name_canonical": "...", "su
         nameCanonical: cleanCanonical(parsed.name_canonical),
         summary: typeof parsed.summary === 'string' ? parsed.summary.trim().slice(0, 400) : '',
         confidence: cleanConfidence(parsed.confidence),
+        citations,
         top: normalize(parsed.top),
         middle: normalize(parsed.middle),
         base: normalize(parsed.base)

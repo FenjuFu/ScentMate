@@ -58,7 +58,12 @@ open http://localhost:4321
 | `AI_BASE_URL` | OpenAI 兼容 API 基地址（例如 `https://api.openai.com/v1`） |
 | `AI_API_KEY` | 上面服务的 API Key |
 | `AI_MODEL` | 模型名（例如 `gpt-4o-mini`） |
+| `AI_SEARCH_BASE_URL` | （可选）联网检索专用 base URL，如 `https://api.perplexity.ai` 或同一 OpenAI base URL |
+| `AI_SEARCH_API_KEY` | （可选）联网检索专用 API Key，缺省时复用 `AI_API_KEY` |
+| `AI_SEARCH_MODEL` | （可选）联网检索专用模型，如 `sonar-pro`、`sonar`、`gpt-4o-search-preview` |
 | `GITHUB_TOKEN` | 用于「意见反馈」自动创建 Issue 的 PAT（`public_repo` 权限即可） |
+
+只有同时设置了 `AI_SEARCH_BASE_URL` 和 `AI_SEARCH_MODEL` 时，AI 自动识别成分才会走联网检索路径，其他 AI 功能（名片、顾问、组合搜索）仍用默认 chat completions。
 
 Firebase 配置写在 [js/firebase-config.js](js/firebase-config.js)。
 

@@ -1090,6 +1090,24 @@ class ScentMateApp {
         };
         notesEl.innerHTML = renderLayer('top_notes', result.top) + renderLayer('middle_notes', result.middle) + renderLayer('base_notes', result.base);
 
+        const citationsEl = document.getElementById('ai-preview-citations');
+        const cites = Array.isArray(result.citations) ? result.citations : [];
+        if (cites.length) {
+            const links = cites.map(url => {
+                try {
+                    const u = new URL(url);
+                    return `<a href="${this.escapeHtml(url)}" target="_blank" rel="noreferrer noopener">${this.escapeHtml(u.hostname.replace(/^www\./, ''))}</a>`;
+                } catch {
+                    return '';
+                }
+            }).filter(Boolean).join('');
+            citationsEl.innerHTML = `<span class="ai-preview-citations-title">${this.escapeHtml(t.ai_preview_citations || 'Sources:')}</span>${links}`;
+            citationsEl.hidden = false;
+        } else {
+            citationsEl.innerHTML = '';
+            citationsEl.hidden = true;
+        }
+
         modal.classList.add('active');
         this.bindAiPreviewOnce();
         this._pendingAiLookup = { originalName, originalBrand, result };

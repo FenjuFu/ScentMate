@@ -1622,6 +1622,23 @@ main {
     justify-content: flex-end;
     margin-bottom: 12px;
 }
+.ai-preview-citations {
+    margin: 6px 0 14px;
+    font-size: 12px;
+    color: #888;
+    line-height: 1.7;
+}
+.ai-preview-citations-title {
+    color: #aaa;
+    margin-right: 4px;
+}
+.ai-preview-citations a {
+    color: var(--brand-orange);
+    text-decoration: none;
+    margin-right: 8px;
+    word-break: break-all;
+}
+.ai-preview-citations a:hover { text-decoration: underline; }
 .ai-preview-disclaimer {
     font-size: 11px;
     color: #b0a99e;
