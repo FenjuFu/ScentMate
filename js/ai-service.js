@@ -850,15 +850,15 @@ export async function lookupPerfumeNotes(name, brand, lang = 'zh') {
     });
 
     const systemContent = lang === 'en'
-        ? `You are a fragrance expert. Given a perfume's brand and name, return its known notes split into top / middle / base, using ONLY the Chinese ingredient names from the provided dictionary. If you are not confident the perfume exists, return empty arrays. Output strict JSON: {"top": [...], "middle": [...], "base": [...]}. Use 2-6 notes per layer. Do NOT include items outside the dictionary. Do not invent perfumes.`
-        : `你是香水成分专家。根据用户给出的品牌和香水名，输出该香水的前/中/后调成分。**只能使用字典中提供的中文成分名**，不要使用字典外的写法。如果不确定这款香水是否真实存在，请返回三个空数组。严格只输出 JSON：{"top": [...], "middle": [...], "base": [...]}。每层 2-6 个成分。不要编造香水。`;
+        ? `You are a fragrance expert. Given a perfume's brand and name, return its real, publicly known notes split into top / middle / base. Use Chinese ingredient names (short, single-term like 血橙, 青豌豆, 降龙涎香醚, 鸢尾花, 白松香). Prefer the names from the provided dictionary when they fit, but if the actual note is not in the dictionary, write it out anyway — accuracy is more important than dictionary-matching. If you are not confident the perfume exists, return empty arrays — do NOT invent. Output strict JSON: {"top": [...], "middle": [...], "base": [...]}, 2-6 notes per layer.`
+        : `你是熟悉香水的资深成分编辑。给定品牌和香水名，请输出这款香水**真实公开记录**的前调 / 中调 / 后调。请用简短的中文成分名（如：血橙、青豌豆、降龙涎香醚、鸢尾花、白松香）。**字典只是参考**：如果命中字典里的名字就用字典；如果真实成分不在字典里（例如小众/新发布的成分），直接写出来即可，准确性比对齐字典更重要。如果你不确定这款香水是否真实存在，返回三个空数组——不要编造。严格只输出 JSON：{"top": [...], "middle": [...], "base": [...]}，每层 2-6 个成分。`;
 
     const payload = {
         temperature: 0.2,
         messages: [
             {
                 role: 'system',
-                content: `${systemContent}\n\n--- Ingredient dictionary ---\n${ingredientNames.join(', ')}`
+                content: `${systemContent}\n\n--- Ingredient dictionary (reference) ---\n${ingredientNames.join(', ')}`
             },
             {
                 role: 'user',
@@ -898,11 +898,14 @@ export async function lookupPerfumeNotes(name, brand, lang = 'zh') {
         for (const item of list) {
             if (typeof item !== 'string') continue;
             let candidate = item.trim();
+            if (!candidate || candidate.length > 20) continue;
+            // Strip wrapping punctuation
+            candidate = candidate.replace(/^[("「『]+|[)"」』。,，、；;]+$/g, '').trim();
             if (!candidate) continue;
+            // Map english alias to chinese dictionary entry if possible
             if (!ingredientSet.has(candidate)) {
                 const zh = enToZh[candidate.toLowerCase()];
                 if (zh && ingredientSet.has(zh)) candidate = zh;
-                else continue;
             }
             if (seen.has(candidate)) continue;
             seen.add(candidate);

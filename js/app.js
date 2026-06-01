@@ -1043,13 +1043,58 @@ class ScentMateApp {
         const text = document.getElementById('smart-input-text').value;
         if (!text) return;
 
-        let found = false;
-        ALL_INGREDIENTS.forEach(item => {
-            if (text.includes(item.name)) {
-                this.state.tempNotes.middle.add(item.name); // Default to middle for smart parse
-                found = true;
-            }
+        const sectionPatterns = [
+            { layer: 'top', regex: /(前调|顶调|头香|开场|Top\s*notes?|Head\s*notes?)/i },
+            { layer: 'middle', regex: /(中调|心调|Heart\s*notes?|Middle\s*notes?)/i },
+            { layer: 'base', regex: /(后调|基调|尾调|底调|Base\s*notes?|Bottom\s*notes?)/i }
+        ];
+
+        const positions = [];
+        sectionPatterns.forEach(({ layer, regex }) => {
+            const match = text.match(regex);
+            if (match) positions.push({ layer, start: match.index, end: match.index + match[0].length });
         });
+        positions.sort((a, b) => a.start - b.start);
+
+        const splitFreeNotes = (slice) => {
+            return slice
+                .replace(/[:：]/g, ' ')
+                .split(/[、，,;；\n\r]+/)
+                .map(s => s.trim())
+                .filter(s => s && s.length <= 20);
+        };
+
+        let found = false;
+        const addNote = (layer, name) => {
+            this.state.tempNotes[layer].add(name);
+            found = true;
+        };
+
+        if (positions.length === 0) {
+            ALL_INGREDIENTS.forEach(item => {
+                if (text.includes(item.name)) addNote('middle', item.name);
+            });
+        } else {
+            for (let i = 0; i < positions.length; i++) {
+                const { layer, end } = positions[i];
+                const nextStart = i + 1 < positions.length ? positions[i + 1].start : text.length;
+                const slice = text.slice(end, nextStart);
+                const dictHits = new Set();
+                ALL_INGREDIENTS.forEach(item => {
+                    if (slice.includes(item.name)) {
+                        addNote(layer, item.name);
+                        dictHits.add(item.name);
+                    }
+                });
+                splitFreeNotes(slice).forEach(token => {
+                    if (!token) return;
+                    if (dictHits.has(token)) return;
+                    if (ALL_INGREDIENTS.some(it => it.name === token)) return;
+                    if (Array.from(dictHits).some(hit => token.includes(hit) || hit.includes(token))) return;
+                    addNote(layer, token);
+                });
+            }
+        }
 
         if (found) {
             this.showToast(t.parsed, 'success');
