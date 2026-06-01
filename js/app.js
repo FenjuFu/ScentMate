@@ -3,7 +3,7 @@ import { AuthSystem } from './auth.js';
 import { ScentVisualization } from './viz.js';
 import { buildFallbackIdentity, generateCollectionIdentity, generateCollectionMusicPairing } from './ai-service.js';
 import { createCollection, loadLocalSync, loadPerfumes, loadPublicUsers, savePerfumes, loadCardLikes, toggleCardLike, loadCardComments, postCardComment, reportCardComment, deleteCardComment } from './store.js';
-import { askScentAdvisor } from './ai-service.js';
+import { askScentAdvisor, lookupPerfumeNotes } from './ai-service.js';
 
 const DEFAULT_PERFUMES = [
     { id: 1, name: "蓦岚 青藤", brand: "", notes: { top: ["苦橙", "罗勒"], middle: ["常春藤"], base: ["小豆蔻", "橡木苔"] } },
@@ -244,6 +244,7 @@ class ScentMateApp {
         document.getElementById('btn-voice-record').addEventListener('click', () => this.startVoiceRecognition());
         document.getElementById('image-input').addEventListener('change', (e) => this.handleImageUpload(e));
         document.getElementById('btn-smart-parse').addEventListener('click', () => this.parseSmartInput());
+        document.getElementById('btn-ai-lookup-notes')?.addEventListener('click', () => this.runAiLookupNotes());
 
         // Feedback
         document.getElementById('btn-open-feedback')?.addEventListener('click', () => this.openFeedbackModal());
@@ -995,6 +996,45 @@ class ScentMateApp {
                 }, 1000);
             }
             reader.readAsDataURL(e.target.files[0]);
+        }
+    }
+
+    async runAiLookupNotes() {
+        const t = this.getTranslation().modal;
+        const name = document.getElementById('input-perfume-name').value.trim();
+        const brand = document.getElementById('input-perfume-brand').value.trim();
+        if (!name) {
+            this.showToast(t.ai_lookup_need_input, 'error');
+            return;
+        }
+        if (this._aiLookupPending) return;
+        const btn = document.getElementById('btn-ai-lookup-notes');
+        const originalText = btn.textContent;
+        this._aiLookupPending = true;
+        btn.disabled = true;
+        btn.textContent = t.ai_lookup_loading;
+        try {
+            const result = await lookupPerfumeNotes(name, brand, this.state.currentLang);
+            const total = result.top.length + result.middle.length + result.base.length;
+            if (total === 0) {
+                this.showToast(t.ai_lookup_no_match, 'info');
+                return;
+            }
+            this.state.tempNotes = {
+                top: new Set(result.top),
+                middle: new Set(result.middle),
+                base: new Set(result.base)
+            };
+            this.renderSelectedNotes();
+            document.querySelector('.tab-btn[data-tab="manual"]').click();
+            this.showToast((t.ai_lookup_success || 'Filled {0}').replace('{0}', String(total)), 'success');
+        } catch (error) {
+            console.error('[ai-lookup] failed', error);
+            this.showToast(t.ai_lookup_failed, 'error');
+        } finally {
+            this._aiLookupPending = false;
+            btn.disabled = false;
+            btn.textContent = originalText;
         }
     }
 

@@ -1,4 +1,4 @@
-import { DB, SCENT_TRANSLATIONS } from './data.js';
+import { DB, SCENT_TRANSLATIONS, ALL_INGREDIENTS } from './data.js';
 
 const PROFILE_FEELINGS = {
     zh: {
@@ -834,6 +834,89 @@ export async function generateCollectionMusicPairing(collection, currentMusicId 
     } catch (error) {
         return fallback;
     }
+}
+
+export async function lookupPerfumeNotes(name, brand, lang = 'zh') {
+    const cleanName = String(name || '').trim().slice(0, 80);
+    const cleanBrand = String(brand || '').trim().slice(0, 80);
+    if (!cleanName) throw new Error('lookup-need-name');
+
+    const ingredientNames = Array.isArray(ALL_INGREDIENTS) ? ALL_INGREDIENTS.map(i => i.name) : [];
+    const enToZh = {};
+    Object.entries(SCENT_TRANSLATIONS || {}).forEach(([zh, en]) => {
+        if (typeof en === 'string') {
+            enToZh[en.toLowerCase()] = zh;
+        }
+    });
+
+    const systemContent = lang === 'en'
+        ? `You are a fragrance expert. Given a perfume's brand and name, return its known notes split into top / middle / base, using ONLY the Chinese ingredient names from the provided dictionary. If you are not confident the perfume exists, return empty arrays. Output strict JSON: {"top": [...], "middle": [...], "base": [...]}. Use 2-6 notes per layer. Do NOT include items outside the dictionary. Do not invent perfumes.`
+        : `你是香水成分专家。根据用户给出的品牌和香水名，输出该香水的前/中/后调成分。**只能使用字典中提供的中文成分名**，不要使用字典外的写法。如果不确定这款香水是否真实存在，请返回三个空数组。严格只输出 JSON：{"top": [...], "middle": [...], "base": [...]}。每层 2-6 个成分。不要编造香水。`;
+
+    const payload = {
+        temperature: 0.2,
+        messages: [
+            {
+                role: 'system',
+                content: `${systemContent}\n\n--- Ingredient dictionary ---\n${ingredientNames.join(', ')}`
+            },
+            {
+                role: 'user',
+                content: JSON.stringify({
+                    brand: cleanBrand || '(unknown)',
+                    name: cleanName,
+                    lang
+                })
+            }
+        ]
+    };
+
+    const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        let detail = '';
+        try { detail = (await response.text()).slice(0, 300); } catch {}
+        const err = new Error(`ai-http-${response.status}`);
+        err.code = `ai-http-${response.status}`;
+        err.detail = detail;
+        throw err;
+    }
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content || '';
+    const parsed = extractJson(content);
+    if (!parsed) throw new Error('ai-invalid-json');
+
+    const ingredientSet = new Set(ingredientNames);
+    const normalize = (list) => {
+        if (!Array.isArray(list)) return [];
+        const cleaned = [];
+        const seen = new Set();
+        for (const item of list) {
+            if (typeof item !== 'string') continue;
+            let candidate = item.trim();
+            if (!candidate) continue;
+            if (!ingredientSet.has(candidate)) {
+                const zh = enToZh[candidate.toLowerCase()];
+                if (zh && ingredientSet.has(zh)) candidate = zh;
+                else continue;
+            }
+            if (seen.has(candidate)) continue;
+            seen.add(candidate);
+            cleaned.push(candidate);
+            if (cleaned.length >= 8) break;
+        }
+        return cleaned;
+    };
+
+    return {
+        top: normalize(parsed.top),
+        middle: normalize(parsed.middle),
+        base: normalize(parsed.base)
+    };
 }
 
 export async function askScentAdvisor(history, context, lang = 'zh') {
