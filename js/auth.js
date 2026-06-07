@@ -36,6 +36,9 @@ export class AuthSystem {
             ...preset,
             photoURL: this.createAvatarDataUrl(preset)
         }));
+        this.authRoutePresets = this.buildAuthRoutePresets();
+        this.activeAuthRouteIndex = 0;
+        this.syncAuthRouteFromConfig();
     }
 
     init() {
@@ -97,6 +100,58 @@ export class AuthSystem {
         }
         document.getElementById('btn-google-signin').addEventListener('click', () => this.handleGoogle());
         document.getElementById('btn-forgot-password').addEventListener('click', () => this.handleForgotPassword());
+    }
+
+    buildAuthRoutePresets() {
+        const routes = [];
+        if (AUTH_PROXY_HOST) {
+            routes.push({
+                id: 'proxy',
+                label: 'proxy',
+                apiHost: AUTH_PROXY_HOST,
+                tokenApiHost: AUTH_PROXY_HOST,
+                apiScheme: 'https'
+            });
+        }
+        routes.push({
+            id: 'direct',
+            label: 'direct',
+            apiHost: 'identitytoolkit.googleapis.com',
+            tokenApiHost: 'securetoken.googleapis.com',
+            apiScheme: 'https'
+        });
+        return routes;
+    }
+
+    getActiveAuthRoute() {
+        return this.authRoutePresets[this.activeAuthRouteIndex] || null;
+    }
+
+    syncAuthRouteFromConfig() {
+        if (!auth?.config || this.authRoutePresets.length === 0) return;
+        const currentApiHost = auth.config.apiHost || 'identitytoolkit.googleapis.com';
+        const currentTokenApiHost = auth.config.tokenApiHost || 'securetoken.googleapis.com';
+        const routeIndex = this.authRoutePresets.findIndex((route) =>
+            route.apiHost === currentApiHost && route.tokenApiHost === currentTokenApiHost
+        );
+        this.activeAuthRouteIndex = routeIndex >= 0 ? routeIndex : 0;
+    }
+
+    applyAuthRoute(route) {
+        if (!auth?.config || !route) return;
+        auth.config.apiHost = route.apiHost;
+        auth.config.tokenApiHost = route.tokenApiHost;
+        auth.config.apiScheme = route.apiScheme || 'https';
+    }
+
+    failoverAuthRoute(reasonCode = '') {
+        if (!auth?.config || this.authRoutePresets.length < 2) return null;
+        this.syncAuthRouteFromConfig();
+        this.activeAuthRouteIndex = (this.activeAuthRouteIndex + 1) % this.authRoutePresets.length;
+        const nextRoute = this.getActiveAuthRoute();
+        this.applyAuthRoute(nextRoute);
+        console.warn(`[ScentMate] Auth route switched to ${nextRoute.label}${reasonCode ? ` after ${reasonCode}` : ''}.`);
+        return nextRoute;
     }
 
     openModal() {
@@ -169,6 +224,34 @@ export class AuthSystem {
         } finally {
             if (timerId) clearTimeout(timerId);
         }
+    }
+
+    async runAuthTask(taskFactory, { retries = 1, retryDelayMs = 900, allowRouteFailover = true } = {}) {
+        let retryCount = 0;
+        let lastError = null;
+        let remainingRouteFailovers = allowRouteFailover ? Math.max(0, this.authRoutePresets.length - 1) : 0;
+        while (true) {
+            try {
+                return await this.withAuthTimeout(taskFactory());
+            } catch (error) {
+                lastError = error;
+                const code = error && error.code ? error.code : '';
+                const retriable = code === 'auth/network-request-failed' || code === 'auth/timeout';
+                if (!retriable) throw error;
+                if (remainingRouteFailovers > 0) {
+                    const nextRoute = this.failoverAuthRoute(code);
+                    if (nextRoute) {
+                        remainingRouteFailovers -= 1;
+                        await new Promise((resolve) => setTimeout(resolve, Math.min(700, retryDelayMs)));
+                        continue;
+                    }
+                }
+                if (retryCount >= retries) throw error;
+                retryCount += 1;
+                await new Promise((resolve) => setTimeout(resolve, retryDelayMs * retryCount));
+            }
+        }
+        throw lastError;
     }
 
     escapeHtml(value) {
@@ -258,7 +341,7 @@ export class AuthSystem {
         };
 
         if (nextProfile.displayName !== user.displayName || nextProfile.photoURL !== user.photoURL) {
-            await updateProfile(user, nextProfile);
+            await this.runAuthTask(() => updateProfile(user, nextProfile));
             return true;
         }
 
@@ -358,7 +441,7 @@ export class AuthSystem {
 
         try {
             if (this.currentTab === 'login') {
-                await this.withAuthTimeout(signInWithEmailAndPassword(auth, email, password));
+                await this.runAuthTask(() => signInWithEmailAndPassword(auth, email, password));
                 this.app.showToast((isEn ? 'Welcome back, ' : '欢迎回来，') + this.displayName(auth.currentUser), 'success');
             } else {
                 const username = document.getElementById('auth-username').value.trim();
@@ -367,10 +450,10 @@ export class AuthSystem {
                     this.app.showToast(isEn ? 'Passwords do not match!' : '两次输入的密码不一致', 'error');
                     return;
                 }
-                const cred = await this.withAuthTimeout(createUserWithEmailAndPassword(auth, email, password));
-                if (username) await updateProfile(cred.user, { displayName: username });
+                const cred = await this.runAuthTask(() => createUserWithEmailAndPassword(auth, email, password));
+                if (username) await this.runAuthTask(() => updateProfile(cred.user, { displayName: username }));
                 this.updateUserNav();
-                try { await sendEmailVerification(cred.user); } catch (e) { /* non-blocking */ }
+                try { await this.runAuthTask(() => sendEmailVerification(cred.user)); } catch (e) { /* non-blocking */ }
                 this.app.showToast(isEn ? 'Account created — verification email sent' : '注册成功，验证邮件已发送', 'success');
             }
             this.closeModal();
@@ -423,7 +506,7 @@ export class AuthSystem {
             return;
         }
         try {
-            await sendPasswordResetEmail(auth, email);
+            await this.runAuthTask(() => sendPasswordResetEmail(auth, email));
             this.app.showToast(isEn ? 'Password reset email sent' : '重置密码邮件已发送，请查收', 'success');
         } catch (error) {
             this.app.showToast(this.mapError(error), 'error');
@@ -473,7 +556,7 @@ export class AuthSystem {
         const activeUser = auth.currentUser || this.user;
         if (!activeUser) return;
 
-        await reload(activeUser);
+        await this.runAuthTask(() => reload(activeUser));
         this.user = auth.currentUser || activeUser;
         this.app.currentUser = this.user;
         this.renderProfileView(true);
@@ -485,7 +568,7 @@ export class AuthSystem {
         const activeUser = auth.currentUser || this.user;
         if (!activeUser) return;
 
-        await sendEmailVerification(activeUser);
+        await this.runAuthTask(() => sendEmailVerification(activeUser));
         this.app.showToast(this.app.getTranslation().toast.verification_sent, 'success');
     }
 
@@ -508,7 +591,7 @@ export class AuthSystem {
         const button = document.getElementById('btn-profile-password-save');
         if (button) button.disabled = true;
         try {
-            await updatePassword(activeUser, nextPassword);
+            await this.runAuthTask(() => updatePassword(activeUser, nextPassword));
             document.getElementById('input-profile-password').value = '';
             document.getElementById('input-profile-password-confirm').value = '';
             this.app.showToast(t.toast.password_updated, 'success');
@@ -539,10 +622,10 @@ export class AuthSystem {
         if (saveButton) saveButton.disabled = true;
 
         try {
-            await updateProfile(activeUser, {
+            await this.runAuthTask(() => updateProfile(activeUser, {
                 displayName: nickname,
                 photoURL
-            });
+            }));
             this.savedVisibilitySettings = await saveUserVisibilitySettings(activeUser, visibilitySettings, this.app.getOwnedCollections());
             this.user = auth.currentUser || activeUser;
             this.app.currentUser = this.user;
@@ -784,11 +867,11 @@ export class AuthSystem {
             'auth/too-many-requests': '尝试过于频繁，请稍后再试',
             'auth/popup-closed-by-user': '登录窗口已关闭',
             'auth/popup-blocked': '弹窗被浏览器拦截，请允许弹窗后重试',
-            'auth/network-request-failed': '网络错误，请检查连接',
+            'auth/network-request-failed': '网络波动，请重试；若仍失败可切换网络或浏览器',
             'auth/operation-not-allowed': '该登录方式未在 Firebase 控制台启用',
             'auth/unauthorized-domain': '当前域名未加入 Firebase 授权域名列表',
             'auth/requires-recent-login': '出于安全考虑，请重新登录后再执行此操作',
-            'auth/timeout': '请求超时，请稍后重试；移动网络下首次认证可能更慢',
+            'auth/timeout': '请求超时，请重试；移动网络下首次认证可能更慢',
             'permission-denied': 'Firestore 权限不足：大概率是公开资料规则还没部署',
             'unavailable': 'Firestore 服务暂时不可用，请稍后重试'
         };
@@ -802,7 +885,7 @@ export class AuthSystem {
             'auth/too-many-requests': 'Too many attempts, try again later',
             'auth/popup-closed-by-user': 'Sign-in popup closed',
             'auth/popup-blocked': 'Popup blocked — please allow popups',
-            'auth/network-request-failed': 'Network error, check your connection',
+            'auth/network-request-failed': 'Network issue. Please retry, or switch network/browser if it persists',
             'auth/operation-not-allowed': 'This sign-in method is not enabled in Firebase',
             'auth/unauthorized-domain': 'This domain is not in the Firebase authorized list',
             'auth/requires-recent-login': 'For security, please sign in again before doing this',
