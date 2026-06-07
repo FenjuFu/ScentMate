@@ -167,6 +167,18 @@ export function loadLocalSync(defaults, defaultSettings = DEFAULT_VISIBILITY_SET
     return loadLocal(defaults, defaultSettings);
 }
 
+// Wipe the locally cached collections. Called on explicit logout so the next
+// guest viewer on this browser sees the seeded demo data instead of the
+// previous account's perfumes.
+export function clearLocal() {
+    try {
+        localStorage.removeItem(LS_KEY);
+        localStorage.removeItem(LEGACY_LS_KEY);
+    } catch (e) {
+        // Storage access blocked (private mode etc.) — nothing to do.
+    }
+}
+
 export async function loadPerfumes(user, defaults, defaultSettings = DEFAULT_VISIBILITY_SETTINGS) {
     if (isFirebaseConfigured && user) {
         const ref = doc(db, 'users', user.uid);

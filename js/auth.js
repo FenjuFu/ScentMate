@@ -1,5 +1,5 @@
 import { auth, isFirebaseConfigured } from './firebase-config.js';
-import { DEFAULT_VISIBILITY_SETTINGS, loadUserVisibilitySettings, saveUserVisibilitySettings } from './store.js';
+import { DEFAULT_VISIBILITY_SETTINGS, clearLocal, loadUserVisibilitySettings, saveUserVisibilitySettings } from './store.js';
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -403,6 +403,11 @@ export class AuthSystem {
         const isEn = this.app.state.currentLang === 'en';
         const t = this.app.getTranslation().auth;
         if (confirm(t.logout_confirm)) {
+            // Clear the cached collection BEFORE signOut so the auth listener
+            // that fires next reads an empty localStorage and falls through to
+            // the seeded demo data instead of leaving this user's perfumes
+            // visible to whoever opens the tab next.
+            clearLocal();
             await signOut(auth);
             this.app.navigate('home');
             this.app.showToast(isEn ? 'Signed out' : '已退出登录', 'info');
