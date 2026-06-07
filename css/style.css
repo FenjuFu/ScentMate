@@ -63,6 +63,7 @@ nav {
     font-size: 14px;
     transition: all 0.3s;
     color: #666;
+    white-space: nowrap;
 }
 
 .nav-item:hover, .nav-item.active {
@@ -1988,9 +1989,26 @@ main {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .nav-links { gap: 6px; }
-    .nav-item { padding: 6px 10px; font-size: 13px; }
-    .logo { font-size: 16px; }
+    /* Two-row nav: logo + auth on row 1, tabs centered on row 2.
+       The fixed 60px height stops being workable once we wrap. */
+    nav {
+        height: auto;
+        flex-wrap: wrap;
+        padding: 8px 14px;
+        row-gap: 8px;
+    }
+    .logo { font-size: 16px; order: 1; }
+    .user-nav { order: 2; gap: 10px; }
+    .nav-links {
+        order: 3;
+        flex: 1 1 100%;
+        justify-content: space-around;
+        gap: 4px;
+    }
+    .nav-item { padding: 6px 12px; font-size: 13px; }
+    .login-btn { padding: 4px 12px; font-size: 13px; }
+    .lang-btn { padding: 3px 7px; font-size: 11px; }
+    .user-avatar, .user-avatar-img { width: 28px; height: 28px; }
     #view-profile { padding: 20px; }
     .profile-hero-card { grid-template-columns: 1fr; padding: 22px; }
     .profile-form-card { padding: 22px; }
