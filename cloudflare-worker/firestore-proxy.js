@@ -46,6 +46,8 @@ function buildCorsHeaders(request, extra) {
         'Authorization, Content-Type, X-Goog-Api-Client, X-Firebase-Gmpid, X-Firebase-AppCheck, X-Client-Version, X-Goog-Request-Params');
     headers.set('access-control-expose-headers', 'Content-Length, Content-Type, Date, Server');
     headers.set('access-control-max-age', '86400');
+    headers.set('cache-control', 'no-store, no-cache, max-age=0, must-revalidate, no-transform');
+    headers.set('pragma', 'no-cache');
     return headers;
 }
 

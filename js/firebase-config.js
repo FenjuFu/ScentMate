@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-lite.js";
 
 // ============================================================
 // 把下面替换成你 Firebase 项目「网页应用」的配置
@@ -34,8 +34,8 @@ export const AUTH_PROXY_HOST = "purple-wildflower-9c94scent-auth-proxyscent-auth
 // Cloudflare Worker reverse proxy for Firestore (firestore.googleapis.com).
 // Leave empty to talk to Google directly; set to your worker host (no protocol,
 // no trailing slash) to route Firestore reads/writes through it — needed for
-// mainland China networks. When set, Firestore is initialized with
-// experimentalForceLongPolling so the transport survives the proxy.
+// mainland China networks. The app uses Firestore Lite, so most operations go
+// through plain request/response REST calls instead of WebChannel listeners.
 export const FIRESTORE_PROXY_HOST = "scent-firestore-proxy.fufenjupku.workers.dev";
 
 let auth = null;
@@ -52,8 +52,7 @@ if (isFirebaseConfigured) {
     if (FIRESTORE_PROXY_HOST) {
         db = initializeFirestore(app, {
             host: FIRESTORE_PROXY_HOST,
-            ssl: true,
-            experimentalForceLongPolling: true
+            ssl: true
         });
     } else {
         db = getFirestore(app);
