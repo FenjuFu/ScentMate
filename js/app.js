@@ -143,6 +143,19 @@ class ScentMateApp {
         }
     }
 
+    // Guard for write-side actions that don't make sense without an account
+    // (e.g. saving a perfume, creating/renaming/deleting a collection, toggling
+    // public visibility, kicking off AI naming or music pairing). Shows a toast,
+    // pops the login modal, and returns false so the caller can early-exit.
+    // Returns true when there's a signed-in user and the caller may proceed.
+    requireLogin(message) {
+        if (this.currentUser) return true;
+        const isEn = this.state.currentLang === 'en';
+        this.showToast(message || (isEn ? 'Please sign in first' : '请先登录'), 'info');
+        this.auth.openModal();
+        return false;
+    }
+
     showToast(message, type = 'info') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
@@ -716,6 +729,7 @@ class ScentMateApp {
 
     createCollectionFolder() {
         const isEn = this.state.currentLang === 'en';
+        if (!this.requireLogin(isEn ? 'Please sign in to create a collection' : '请先登录再新建收藏夹')) return;
         const suggested = this.getCollectionDefaultName();
         const name = prompt(isEn ? 'Name your new collection' : '给新收藏夹起个名字', suggested);
         if (name === null) return;
@@ -734,10 +748,11 @@ class ScentMateApp {
     }
 
     renameActiveCollection() {
+        const isEn = this.state.currentLang === 'en';
+        if (!this.requireLogin(isEn ? 'Please sign in to rename a collection' : '请先登录再重命名收藏夹')) return;
         const activeCollection = this.getActiveOwnedCollection();
         if (!activeCollection) return;
 
-        const isEn = this.state.currentLang === 'en';
         const nextName = prompt(isEn ? 'Rename collection' : '重命名收藏夹', activeCollection.name);
         if (nextName === null) return;
 
@@ -751,6 +766,8 @@ class ScentMateApp {
     }
 
     deleteActiveCollection() {
+        const isEn = this.state.currentLang === 'en';
+        if (!this.requireLogin(isEn ? 'Please sign in to delete a collection' : '请先登录再删除收藏夹')) return;
         const collections = this.getOwnedCollections();
         if (collections.length <= 1) {
             this.showToast(this.state.currentLang === 'en' ? 'Keep at least one collection' : '至少保留一个收藏夹', 'info');
@@ -759,7 +776,6 @@ class ScentMateApp {
 
         const activeCollection = this.getActiveOwnedCollection();
         if (!activeCollection) return;
-        const isEn = this.state.currentLang === 'en';
         const confirmed = confirm(isEn ? `Delete "${activeCollection.name}"?` : `确定删除「${activeCollection.name}」吗？`);
         if (!confirmed) return;
 
@@ -771,6 +787,8 @@ class ScentMateApp {
     }
 
     toggleActiveCollectionVisibility(field) {
+        const isEn = this.state.currentLang === 'en';
+        if (!this.requireLogin(isEn ? 'Please sign in to change visibility' : '请先登录再设置公开状态')) return;
         const activeCollection = this.getActiveOwnedCollection();
         if (!activeCollection) return;
 
@@ -784,15 +802,16 @@ class ScentMateApp {
     }
 
     async generateActiveCollectionIdentity() {
+        const isEn = this.state.currentLang === 'en';
+        if (!this.requireLogin(isEn ? 'Please sign in to use AI naming' : '请先登录再使用 AI 命名')) return;
         const activeCollection = this.getActiveOwnedCollection();
         if (!activeCollection) return;
 
         if (!activeCollection.perfumes || activeCollection.perfumes.length === 0) {
-            this.showToast(this.state.currentLang === 'en' ? 'Add perfumes before using AI naming' : '先往收藏夹里添加香水，再生成 AI 名称', 'info');
+            this.showToast(isEn ? 'Add perfumes before using AI naming' : '先往收藏夹里添加香水，再生成 AI 名称', 'info');
             return;
         }
 
-        const isEn = this.state.currentLang === 'en';
         this.showToast(isEn ? 'Generating collection identity and soundtrack...' : '正在生成收藏夹名字、气味名片与古典音乐...', 'info');
         try {
             const identity = await generateCollectionIdentity(activeCollection, this.state.currentLang);
@@ -839,6 +858,8 @@ class ScentMateApp {
 
     async refreshActiveCollectionMusic() {
         if (this.getActiveCardProfile()) return;
+        const isEn = this.state.currentLang === 'en';
+        if (!this.requireLogin(isEn ? 'Please sign in to refresh music' : '请先登录再更换音乐')) return;
 
         const activeCollection = this.getActiveOwnedCollection();
         if (!activeCollection) return;
@@ -864,6 +885,8 @@ class ScentMateApp {
     }
 
     deletePerfume(id) {
+        const isEn = this.state.currentLang === 'en';
+        if (!this.requireLogin(isEn ? 'Please sign in to delete perfumes' : '请先登录再删除香水')) return;
         const t = this.getTranslation();
         if (confirm(t.collection.delete_confirm)) {
             const nextPerfumes = this.state.myPerfumes.filter(p => p.id !== id);
@@ -878,6 +901,8 @@ class ScentMateApp {
     }
 
     openAddModal(id = null) {
+        const isEn = this.state.currentLang === 'en';
+        if (!this.requireLogin(isEn ? 'Please sign in to add perfumes' : '请先登录再添加香水')) return;
         const t = this.getTranslation();
         document.getElementById('add-modal').classList.add('active');
         document.getElementById('smart-input-text').value = '';
