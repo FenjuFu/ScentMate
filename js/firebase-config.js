@@ -22,12 +22,26 @@ export const firebaseConfig = {
 export const isFirebaseConfigured =
     !!firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_");
 
+// Cloudflare Worker reverse proxy for Firebase Auth REST endpoints.
+// Leave empty to talk to Google directly; set to your worker host
+// (e.g. "scent-auth-proxy.example.workers.dev", no protocol, no trailing slash)
+// to route auth calls through it — needed for mainland China networks where
+// identitytoolkit.googleapis.com is unreliable. Covers email/password,
+// password reset, email verification, and ID token refresh. Google sign-in
+// popup is not affected by this and still requires direct googleapis access.
+export const AUTH_PROXY_HOST = "purple-wildflower-9c94scent-auth-proxyscent-auth-proxy.fufenjupku.workers.dev";
+
 let auth = null;
 let db = null;
 
 if (isFirebaseConfigured) {
     const app = initializeApp(firebaseConfig);
     auth = getAuth(app);
+    if (AUTH_PROXY_HOST) {
+        auth.config.apiHost = AUTH_PROXY_HOST;
+        auth.config.tokenApiHost = AUTH_PROXY_HOST;
+        auth.config.apiScheme = "https";
+    }
     db = getFirestore(app);
 } else {
     console.warn("[ScentMate] Firebase 未配置：登录与云同步已禁用，香水数据暂用本地存储。请在 js/firebase-config.js 填入配置。");
