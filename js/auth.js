@@ -45,25 +45,38 @@ export class AuthSystem {
 
         if (isFirebaseConfigured) {
             onAuthStateChanged(auth, async (user) => {
-                let activeUser = user;
-                let seeded = false;
-                if (user) {
-                    seeded = await this.ensureUserProfile(user);
-                    activeUser = auth.currentUser || user;
-                    this.savedVisibilitySettings = await loadUserVisibilitySettings(activeUser);
-                    this.syncProfileDraft(activeUser, true, this.savedVisibilitySettings);
-                } else {
+                // Publish the auth state to the app immediately. The
+                // Firestore-dependent enrichment below (visibility settings,
+                // profile seeding) can be slow — especially when traffic is
+                // routed through a reverse proxy with long-polling — and we
+                // don't want write-action gates like requireLogin() to stay
+                // locked just because Firestore hasn't replied yet.
+                this.user = user;
+                this.updateUserNav();
+                this.app.onAuthChanged(user);
+
+                if (!user) {
                     this.savedVisibilitySettings = { ...DEFAULT_VISIBILITY_SETTINGS };
                     this.profileDraft = { uid: null, nickname: '', presetId: null, customPhotoURL: null, publicCollection: false, publicCard: false };
+                    return;
                 }
 
-                this.user = activeUser;
-                this.updateUserNav();
-                this.app.onAuthChanged(activeUser);
-
-                if (seeded && activeUser) {
-                    this.openProfile(true);
-                    this.app.showToast(this.app.getTranslation().toast.profile_seeded, 'info');
+                try {
+                    const seeded = await this.ensureUserProfile(user);
+                    const activeUser = auth.currentUser || user;
+                    this.savedVisibilitySettings = await loadUserVisibilitySettings(activeUser);
+                    this.syncProfileDraft(activeUser, true, this.savedVisibilitySettings);
+                    this.user = activeUser;
+                    this.updateUserNav();
+                    if (seeded) {
+                        this.openProfile(true);
+                        this.app.showToast(this.app.getTranslation().toast.profile_seeded, 'info');
+                    }
+                } catch (e) {
+                    // Enrichment failed (likely Firestore unreachable). The
+                    // user is still authenticated and currentUser is set, so
+                    // gates unlock; we just miss the visibility defaults this
+                    // session and fall back to DEFAULT_VISIBILITY_SETTINGS.
                 }
             });
         } else {
