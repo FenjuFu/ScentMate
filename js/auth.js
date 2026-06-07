@@ -1,4 +1,4 @@
-import { auth, isFirebaseConfigured } from './firebase-config.js';
+import { auth, isFirebaseConfigured, AUTH_PROXY_HOST } from './firebase-config.js';
 import { DEFAULT_VISIBILITY_SETTINGS, clearLocal, loadUserVisibilitySettings, saveUserVisibilitySettings } from './store.js';
 import {
     createUserWithEmailAndPassword,
@@ -132,6 +132,8 @@ export class AuthSystem {
         document.getElementById('auth-username-group').style.display = isRegister ? 'block' : 'none';
         document.getElementById('auth-confirm-password-group').style.display = isRegister ? 'block' : 'none';
         document.getElementById('auth-forgot').style.display = isRegister ? 'none' : 'block';
+        document.getElementById('auth-password').setAttribute('autocomplete', isRegister ? 'new-password' : 'current-password');
+        document.getElementById('auth-confirm-password').setAttribute('autocomplete', isRegister ? 'new-password' : 'current-password');
 
         const t = this.app.getTranslation().auth;
         document.getElementById('btn-auth-submit').innerText = isRegister ? t.register_btn : t.login_btn;
@@ -140,6 +142,33 @@ export class AuthSystem {
     displayName(user) {
         if (!user) return '';
         return user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+    }
+
+    getAuthTimeoutMs() {
+        const ua = navigator.userAgent || '';
+        const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+        const effectiveType = navigator.connection?.effectiveType || '';
+        const isSlowConnection = /(^|[^0-9])2g|slow-2g/i.test(effectiveType);
+
+        if (isSlowConnection) return 60000;
+        if (AUTH_PROXY_HOST || isMobile) return 45000;
+        return 25000;
+    }
+
+    async withAuthTimeout(task) {
+        let timerId = null;
+        try {
+            return await Promise.race([
+                task,
+                new Promise((_, reject) => {
+                    timerId = setTimeout(() => {
+                        reject(Object.assign(new Error('auth-timeout'), { code: 'auth/timeout' }));
+                    }, this.getAuthTimeoutMs());
+                })
+            ]);
+        } finally {
+            if (timerId) clearTimeout(timerId);
+        }
     }
 
     escapeHtml(value) {
@@ -327,17 +356,9 @@ export class AuthSystem {
             ? (t.registering || (isEn ? 'Signing up…' : '注册中…'))
             : (t.logging_in || (isEn ? 'Signing in…' : '登录中…'));
 
-        const timeoutMs = 15000;
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(Object.assign(new Error('auth-timeout'), { code: 'auth/timeout' })), timeoutMs)
-        );
-
         try {
             if (this.currentTab === 'login') {
-                await Promise.race([
-                    signInWithEmailAndPassword(auth, email, password),
-                    timeoutPromise
-                ]);
+                await this.withAuthTimeout(signInWithEmailAndPassword(auth, email, password));
                 this.app.showToast((isEn ? 'Welcome back, ' : '欢迎回来，') + this.displayName(auth.currentUser), 'success');
             } else {
                 const username = document.getElementById('auth-username').value.trim();
@@ -346,10 +367,7 @@ export class AuthSystem {
                     this.app.showToast(isEn ? 'Passwords do not match!' : '两次输入的密码不一致', 'error');
                     return;
                 }
-                const cred = await Promise.race([
-                    createUserWithEmailAndPassword(auth, email, password),
-                    timeoutPromise
-                ]);
+                const cred = await this.withAuthTimeout(createUserWithEmailAndPassword(auth, email, password));
                 if (username) await updateProfile(cred.user, { displayName: username });
                 this.updateUserNav();
                 try { await sendEmailVerification(cred.user); } catch (e) { /* non-blocking */ }
@@ -416,10 +434,9 @@ export class AuthSystem {
         const isEn = this.app.state.currentLang === 'en';
         const t = this.app.getTranslation().auth;
         if (confirm(t.logout_confirm)) {
-            // Clear the cached collection BEFORE signOut so the auth listener
-            // that fires next reads an empty localStorage and falls through to
-            // the seeded demo data instead of leaving this user's perfumes
-            // visible to whoever opens the tab next.
+            // Clear the cached collection BEFORE signOut so the next guest view
+            // starts from an empty collection instead of showing the previous
+            // user's perfumes.
             clearLocal();
             await signOut(auth);
             this.app.navigate('home');
@@ -771,7 +788,7 @@ export class AuthSystem {
             'auth/operation-not-allowed': '该登录方式未在 Firebase 控制台启用',
             'auth/unauthorized-domain': '当前域名未加入 Firebase 授权域名列表',
             'auth/requires-recent-login': '出于安全考虑，请重新登录后再执行此操作',
-            'auth/timeout': '请求超时，请检查网络后重试',
+            'auth/timeout': '请求超时，请稍后重试；移动网络下首次认证可能更慢',
             'permission-denied': 'Firestore 权限不足：大概率是公开资料规则还没部署',
             'unavailable': 'Firestore 服务暂时不可用，请稍后重试'
         };
@@ -789,7 +806,7 @@ export class AuthSystem {
             'auth/operation-not-allowed': 'This sign-in method is not enabled in Firebase',
             'auth/unauthorized-domain': 'This domain is not in the Firebase authorized list',
             'auth/requires-recent-login': 'For security, please sign in again before doing this',
-            'auth/timeout': 'Request timed out, please check your connection and retry',
+            'auth/timeout': 'Request timed out. Please retry; first auth requests can be slower on mobile networks',
             'permission-denied': 'Firestore permission denied: public profile rules are likely not deployed yet',
             'unavailable': 'Firestore is temporarily unavailable, please try again'
         };

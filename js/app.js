@@ -2,7 +2,7 @@ import { DB, ALL_INGREDIENTS, SCENT_TRANSLATIONS, TRANSLATIONS, PROFILE_COLORS }
 import { AuthSystem } from './auth.js';
 import { ScentVisualization } from './viz.js';
 import { buildFallbackIdentity, generateCollectionIdentity, generateCollectionMusicPairing } from './ai-service.js';
-import { createCollection, loadLocalSync, loadPerfumes, loadPublicUsers, savePerfumes, loadCardLikes, toggleCardLike, loadCardComments, postCardComment, reportCardComment, deleteCardComment } from './store.js';
+import { createCollection, loadPerfumes, loadPublicUsers, savePerfumes, loadCardLikes, toggleCardLike, loadCardComments, postCardComment, reportCardComment, deleteCardComment } from './store.js';
 import { askScentAdvisor, lookupPerfumeNotes } from './ai-service.js';
 
 const DEFAULT_PERFUMES = [
@@ -50,7 +50,7 @@ const DEFAULT_PERFUMES = [
 
 class ScentMateApp {
     constructor() {
-        const initialCollections = loadLocalSync(DEFAULT_PERFUMES);
+        const initialCollections = [createCollection({}, undefined, 1)];
         this.state = {
             currentLang: localStorage.getItem('scent_lang') || 'zh',
             currentView: 'home',

@@ -1,5 +1,5 @@
 import { db, isFirebaseConfigured } from './firebase-config.js';
-import { collection, doc, getDoc, getDocs, query, setDoc, where, addDoc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, increment, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, query, setDoc, where, addDoc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, increment, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-lite.js";
 
 const LS_KEY = 'scent_collections';
 const LEGACY_LS_KEY = 'scent_perfumes';
@@ -168,7 +168,7 @@ export function loadLocalSync(defaults, defaultSettings = DEFAULT_VISIBILITY_SET
 }
 
 // Wipe the locally cached collections. Called on explicit logout so the next
-// guest viewer on this browser sees the seeded demo data instead of the
+// guest viewer on this browser starts from an empty collection instead of the
 // previous account's perfumes.
 export function clearLocal() {
     try {
@@ -223,7 +223,7 @@ export async function loadPerfumes(user, defaults, defaultSettings = DEFAULT_VIS
         return seededCollections;
     }
 
-    return loadLocal(defaults, defaultSettings);
+    return createSeedCollections([], defaultSettings);
 }
 
 export async function loadUserVisibilitySettings(user) {
