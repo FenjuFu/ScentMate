@@ -29,7 +29,7 @@ export const isFirebaseConfigured =
 // identitytoolkit.googleapis.com is unreliable. Covers email/password,
 // password reset, email verification, and ID token refresh. Google sign-in
 // popup is not affected by this and still requires direct googleapis access.
-export const AUTH_PROXY_HOST = "purple-wildflower-9c94scent-auth-proxyscent-auth-proxy.fufenjupku.workers.dev";
+export const AUTH_PROXY_HOST = "scent-auth-proxy.fufenjupku.workers.dev";
 
 // Cloudflare Worker reverse proxy for Firestore (firestore.googleapis.com).
 // Leave empty to talk to Google directly; set to your worker host (no protocol,

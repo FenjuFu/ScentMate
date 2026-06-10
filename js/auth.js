@@ -453,10 +453,32 @@ export class AuthSystem {
                 const cred = await this.runAuthTask(() => createUserWithEmailAndPassword(auth, email, password));
                 if (username) await this.runAuthTask(() => updateProfile(cred.user, { displayName: username }));
                 this.updateUserNav();
-                try { await this.runAuthTask(() => sendEmailVerification(cred.user)); } catch (e) { /* non-blocking */ }
-                this.app.showToast(isEn ? 'Account created — verification email sent' : '注册成功，验证邮件已发送', 'success');
+                this.closeModal();
+                this.app.showToast(
+                    isEn
+                        ? 'Account created. Verification email will continue in the background.'
+                        : '注册成功，验证邮件会在后台继续发送。',
+                    'success'
+                );
+                void this.runAuthTask(() => sendEmailVerification(cred.user))
+                    .then(() => {
+                        this.app.showToast(
+                            isEn
+                                ? 'Verification email sent'
+                                : '验证邮件已发送',
+                            'success'
+                        );
+                    })
+                    .catch(() => {
+                        this.app.showToast(
+                            isEn
+                                ? 'Account created. You can resend the verification email later in Account Settings.'
+                                : '注册成功。如未收到验证邮件，可稍后在账户设置里重发。',
+                            'info'
+                        );
+                    });
             }
-            this.closeModal();
+            if (this.currentTab === 'login') this.closeModal();
         } catch (error) {
             this.app.showToast(this.mapError(error), 'error');
         } finally {
